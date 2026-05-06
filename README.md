@@ -137,4 +137,4 @@ GitHub: [https://github.com/s56oa/EDIAnalitika](https://github.com/s56oa/EDIAnal
 
 ### License
 
-This project is open source. See the repository for licence details.
+This project is released under the [MIT License](LICENSE).
