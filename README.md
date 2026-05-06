@@ -59,6 +59,22 @@ Tipične vrednosti iz glave, ki jih aplikacija prebere:
 - Karta Evrope je vgrajena kot SVG poti (Natural Earth podatki) — ne zahteva internetne povezave.
 - Podprti brskalniki: Chrome 99+, Firefox 112+, Edge 99+, Safari 15.4+.
 
+### Testiranje
+
+Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName` — skupaj 84 testnih primerov.
+
+**V brskalniku** (`tests.html`) — zahteva lokalni strežnik zaradi same-origin politike iframma:
+```bash
+python3 -m http.server 8080
+# nato odpri http://localhost:8080/tests.html
+```
+Rezultati se prikažejo vizualno v strani (zeleno ✓ / rdeče ✗).
+
+**V ukazni vrstici** z Node.js — brez strežnika, brez zunanjih odvisnosti:
+```bash
+node run_tests.js
+```
+
 ### Avtor
 
 **S56OA — Ognjen Antonic**  
@@ -125,6 +141,22 @@ QSO record columns (0-based): `[0]` date YYMMDD, `[1]` time HHMM, `[2]` callsign
 ### Country Prefix Detection
 
 The application includes a built-in prefix table covering all European DXCC entities (ITU / DXCC list). Detection is regex-based, with more specific prefixes (e.g. `HB0` for Liechtenstein) checked before broader ones (e.g. `HB` for Switzerland). Portable suffixes (`/P`, `/M`, etc.) are stripped before matching.
+
+### Testing
+
+Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName` — 84 test cases in total.
+
+**In the browser** (`tests.html`) — requires a local server due to iframe same-origin policy:
+```bash
+python3 -m http.server 8080
+# then open http://localhost:8080/tests.html
+```
+Results are displayed visually in the page (green ✓ / red ✗).
+
+**Command line** with Node.js — no server, no external dependencies:
+```bash
+node run_tests.js
+```
 
 ### Privacy
 
