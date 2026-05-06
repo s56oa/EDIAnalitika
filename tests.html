@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDI Analytics — Unit Tests</title>
+<style>
+:root { --bg:#0d1117; --bg2:#161b22; --bg3:#1c2333; --border:#30363d;
+  --text:#e6edf3; --muted:#7d8590; --pass:#3fb950; --fail:#ff7b72; --accent:#58a6ff; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:'Courier New',monospace;
+  font-size:13px; padding:2rem; min-height:100vh; }
+h1 { color:var(--accent); font-size:1.1rem; margin-bottom:0.25rem; }
+.subtitle { color:var(--muted); font-size:0.8rem; margin-bottom:1.5rem; }
+.summary { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+  padding:1rem 1.25rem; margin-bottom:1.5rem; display:flex; gap:2rem; align-items:center; }
+.s-pass { color:var(--pass); font-size:1.4rem; font-weight:700; }
+.s-fail { color:var(--fail); font-size:1.4rem; font-weight:700; }
+.s-lbl { color:var(--muted); font-size:0.75rem; }
+.status-badge { margin-left:auto; padding:0.3rem 0.9rem; border-radius:5px;
+  font-size:0.85rem; font-weight:700; }
+.badge-ok { background:rgba(63,185,80,0.15); color:var(--pass); border:1px solid rgba(63,185,80,0.3); }
+.badge-fail { background:rgba(255,123,114,0.15); color:var(--fail); border:1px solid rgba(255,123,114,0.3); }
+.badge-wait { background:rgba(88,166,255,0.1); color:var(--accent); border:1px solid rgba(88,166,255,0.2); }
+.group { margin-bottom:1.25rem; }
+.group-name { color:var(--accent); font-size:0.7rem; text-transform:uppercase;
+  letter-spacing:0.1em; padding:0.3rem 0; border-bottom:1px solid var(--border);
+  margin-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem; }
+.group-name::before { content:''; display:block; width:6px; height:6px;
+  border-radius:50%; background:var(--accent); }
+.row { display:flex; align-items:baseline; gap:0.75rem; padding:2px 0; line-height:1.6; }
+.icon-pass { color:var(--pass); flex-shrink:0; }
+.icon-fail { color:var(--fail); flex-shrink:0; }
+.label { color:var(--text); flex:1; }
+.detail { color:var(--muted); font-size:0.78rem; }
+.detail-fail { color:var(--fail); font-size:0.78rem; }
+#loading { color:var(--muted); }
+</style>
+</head>
+<body>
+<h1>EDI Analytics — Unit Tests</h1>
+<p class="subtitle">Option B: browser-based, no build tools — loads edi_analytics.html via iframe</p>
+
+<div class="summary" id="summary">
+  <div><div class="s-pass" id="sPass">—</div><div class="s-lbl">PASSED</div></div>
+  <div><div class="s-fail" id="sFail">—</div><div class="s-lbl">FAILED</div></div>
+  <div><div style="color:var(--muted);font-size:1.4rem;font-weight:700" id="sTotal">—</div><div class="s-lbl">TOTAL</div></div>
+  <span class="status-badge badge-wait" id="sBadge">Loading...</span>
+</div>
+
+<div id="output"><div id="loading">Loading edi_analytics.html...</div></div>
+
+<iframe id="frame" src="edi_analytics.html" style="display:none" sandbox="allow-scripts allow-same-origin"></iframe>
+
+<script>
+// ── Test framework ──────────────────────────────────────────────
+let _pass = 0, _fail = 0;
+let _out = document.getElementById('output');
+let _currentGroup = null;
+
+function group(name) {
+  _currentGroup = document.createElement('div');
+  _currentGroup.className = 'group';
+  _currentGroup.innerHTML = `<div class="group-name">${name}</div>`;
+  _out.appendChild(_currentGroup);
+}
+
+function _row(ok, label, detail) {
+  const d = document.createElement('div');
+  d.className = 'row';
+  d.innerHTML = ok
+    ? `<span class="icon-pass">✓</span><span class="label">${label}</span><span class="detail">${detail||''}</span>`
+    : `<span class="icon-fail">✗</span><span class="label">${label}</span><span class="detail-fail">${detail||''}</span>`;
+  _currentGroup.appendChild(d);
+}
+
+function assert(condition, label, detail) {
+  if (condition) { _pass++; _row(true, label, detail); }
+  else { _fail++; _row(false, label, detail || 'expected true'); }
+}
+
+function assertEqual(actual, expected, label) {
+  const ok = actual === expected;
+  _pass += ok; _fail += !ok;
+  _row(ok, label, ok ? JSON.stringify(actual) : `got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+}
+
+function assertClose(actual, expected, tol, label) {
+  const ok = typeof actual === 'number' && Math.abs(actual - expected) <= tol;
+  _pass += ok; _fail += !ok;
+  _row(ok, label, ok ? `${actual.toFixed(2)} ≈ ${expected}` : `got ${actual}, expected ~${expected} (±${tol})`);
+}
+
+function assertNull(actual, label) {
+  const ok = actual === null || actual === undefined;
+  _pass += ok; _fail += !ok;
+  _row(ok, label, ok ? 'null/undefined' : `got ${JSON.stringify(actual)}`);
+}
+
+function summary() {
+  const total = _pass + _fail;
+  document.getElementById('sPass').textContent = _pass;
+  document.getElementById('sFail').textContent = _fail;
+  document.getElementById('sTotal').textContent = total;
+  const b = document.getElementById('sBadge');
+  b.textContent = _fail === 0 ? `ALL ${total} PASSED` : `${_fail} FAILED`;
+  b.className = 'status-badge ' + (_fail === 0 ? 'badge-ok' : 'badge-fail');
+}
+
+// ── Run tests once iframe loads ─────────────────────────────────
+document.getElementById('frame').addEventListener('load', function() {
+  document.getElementById('loading').remove();
+  const w = this.contentWindow;
+
+  // Verify functions are accessible
+  const fns = ['escapeHTML','parseEDI','locToLatLon','bearing','haversine','getCountry','modeName'];
+  const missing = fns.filter(f => typeof w[f] !== 'function');
+  if (missing.length) {
+    _out.innerHTML = `<div style="color:var(--fail)">Cannot access functions: ${missing.join(', ')}<br>
+      Try serving via: <code>python3 -m http.server 8080</code></div>`;
+    return;
+  }
+
+  // ════════════════════════════════════════════
+  //  escapeHTML
+  // ════════════════════════════════════════════
+  group('escapeHTML');
+  assertEqual(w.escapeHTML('<script>'), '&lt;script&gt;', 'escapes angle brackets');
+  assertEqual(w.escapeHTML('"quoted"'), '&quot;quoted&quot;', 'escapes double quotes');
+  assertEqual(w.escapeHTML('&'), '&amp;', 'escapes ampersand');
+  assertEqual(w.escapeHTML('<b>bold</b>'), '&lt;b&gt;bold&lt;/b&gt;', 'escapes full tag');
+  assertEqual(w.escapeHTML(''), '', 'empty string stays empty');
+  assertEqual(w.escapeHTML(42), '42', 'coerces number to string');
+  assertEqual(w.escapeHTML('safe text'), 'safe text', 'plain text unchanged');
+  assertEqual(w.escapeHTML('<img src=x onerror=alert(1)>'), '&lt;img src=x onerror=alert(1)&gt;', 'neutralises XSS payload');
+
+  // ════════════════════════════════════════════
+  //  modeName
+  // ════════════════════════════════════════════
+  group('modeName');
+  assertEqual(w.modeName(1), 'SSB', 'mode 1 = SSB');
+  assertEqual(w.modeName(2), 'CW',  'mode 2 = CW');
+  assertEqual(w.modeName(3), 'FM',  'mode 3 = FM');
+  assertEqual(w.modeName(0), '??',  'unknown mode = ??');
+  assertEqual(w.modeName(9), '??',  'out-of-range mode = ??');
+
+  // ════════════════════════════════════════════
+  //  locToLatLon — Maidenhead locator → lat/lon
+  // ════════════════════════════════════════════
+  group('locToLatLon');
+  // JN75FO = home locator S59DGO (Snežnik area)
+  const jn75fo = w.locToLatLon('JN75FO');
+  assert(jn75fo !== null, 'JN75FO returns a result');
+  assertClose(jn75fo?.lat, 45.60, 0.1, 'JN75FO latitude ≈ 45.6°N');
+  assertClose(jn75fo?.lon, 14.46, 0.1, 'JN75FO longitude ≈ 14.5°E');
+  // IO91 = London area
+  const io91vl = w.locToLatLon('IO91VL');
+  assert(io91vl !== null, 'IO91VL returns a result');
+  assertClose(io91vl?.lat, 51.48, 0.1, 'IO91VL latitude ≈ 51.5°N (London)');
+  // Edge cases
+  assertNull(w.locToLatLon('JN'),   'too-short locator returns null');
+  assertNull(w.locToLatLon(''),     'empty string returns null');
+  assertNull(w.locToLatLon('ZZZZZZ'), 'NaN locator returns null');
+  // Lowercase input
+  const lower = w.locToLatLon('jn75fo');
+  assert(lower !== null, 'lowercase locator accepted');
+  assertClose(lower?.lat, 45.60, 0.1, 'lowercase gives same lat as uppercase');
+
+  // ════════════════════════════════════════════
+  //  haversine — great-circle distance
+  // ════════════════════════════════════════════
+  group('haversine');
+  // Same point → 0
+  assertEqual(w.haversine(46, 14, 46, 14), 0, 'same point = 0 km');
+  // Symmetry
+  const d1 = w.haversine(45.6, 14.5, 48.2, 16.4);
+  const d2 = w.haversine(48.2, 16.4, 45.6, 14.5);
+  assertEqual(d1, d2, 'distance is symmetric (A→B = B→A)');
+  // JN75FO → JO20 (near Warsaw area) ≈ 1200–1400 km
+  const sneznikWarsaw = w.haversine(45.6, 14.5, 52.2, 21.0);
+  assert(sneznikWarsaw > 700 && sneznikWarsaw < 1100, `Snežnik → Warsaw ≈ ${sneznikWarsaw} km (700–1100)`);
+  // JN75 → IO91 (London area) ≈ 1400–1600 km
+  const sneznikLondon = w.haversine(45.6, 14.5, 51.5, -0.1);
+  assert(sneznikLondon > 1200 && sneznikLondon < 1800, `Snežnik → London ≈ ${sneznikLondon} km (1200–1800)`);
+  // Positive result for different points
+  assert(w.haversine(0, 0, 1, 1) > 0, 'different points give positive distance');
+
+  // ════════════════════════════════════════════
+  //  bearing — true north azimuth
+  // ════════════════════════════════════════════
+  group('bearing');
+  assertClose(w.bearing(45, 14, 55, 14),   0, 2,   'due North → 0°');
+  assertClose(w.bearing( 0,  0,  0, 10),  90, 0.1, 'due East on equator → exactly 90°');
+  assertClose(w.bearing(45, 14, 45, 24),  90, 4,   'due East at 45°N → ~86.5° (orthodrome, not 90°)');
+  assertClose(w.bearing(55, 14, 45, 14), 180, 2,   'due South → 180°');
+  assertClose(w.bearing(45, 24, 45, 14), 270, 4,   'due West at 45°N → ~273.5° (orthodrome)');
+  const az = w.bearing(45.6, 14.5, 48.2, 16.4);
+  assert(az > 0 && az < 90, `Snežnik → Vienna azimuth in NE quadrant (${az.toFixed(0)}°)`);
+
+  // ════════════════════════════════════════════
+  //  getCountry — prefix detection
+  // ════════════════════════════════════════════
+  group('getCountry — Slovenian neighbours');
+  assertEqual(w.getCountry('S56OA'),  'S5 (SVN)', 'S5 = Slovenia');
+  assertEqual(w.getCountry('9A2AA'),  '9A (HRV)', '9A = Croatia');
+  assertEqual(w.getCountry('OE5XYZ'), 'OE (AUT)', 'OE = Austria');
+  assertEqual(w.getCountry('OM3ABC'), 'OM (SVK)', 'OM = Slovakia');
+  assertEqual(w.getCountry('HA7PQ'),  'HA (HUN)', 'HA = Hungary');
+  assertEqual(w.getCountry('YU7EF'),  'YU (SRB)', 'YU = Serbia');
+  assertEqual(w.getCountry('T94B'),   'T9 (BIH)', 'T9 = Bosnia');
+  assertEqual(w.getCountry('4O3AA'),  '4O (MNE)', '4O = Montenegro');
+
+  group('getCountry — Western Europe');
+  assertEqual(w.getCountry('DL1ABC'), 'DL (DEU)', 'DL = Germany');
+  assertEqual(w.getCountry('DC3XYZ'), 'DL (DEU)', 'DC prefix = Germany');
+  assertEqual(w.getCountry('G4ZZZ'),  'G (GBR)',  'G = Great Britain');
+  assertEqual(w.getCountry('F5KAB'),  'F (FRA)',  'F = France');
+  assertEqual(w.getCountry('PA3AA'),  'PA (HOL)', 'PA = Netherlands');
+  assertEqual(w.getCountry('ON4AA'),  'ON (BEL)', 'ON = Belgium');
+  assertEqual(w.getCountry('HB9XYZ'), 'HB (SUI)', 'HB = Switzerland');
+  assertEqual(w.getCountry('HB0AAA'), 'HB0 (LIE)','HB0 = Liechtenstein (not Switzerland)');
+  assertEqual(w.getCountry('SM5ABC'), 'SM (SWE)', 'SM = Sweden');
+  assertEqual(w.getCountry('LA1BC'),  'LA (NOR)', 'LA = Norway');
+  assertEqual(w.getCountry('OH2BH'),  'OH (FIN)', 'OH = Finland');
+
+  group('getCountry — Eastern Europe');
+  assertEqual(w.getCountry('OK1ABC'), 'OK (CZE)', 'OK = Czech Republic');
+  assertEqual(w.getCountry('SP5XY'),  'SP (POL)', 'SP = Poland');
+  assertEqual(w.getCountry('YO8CRA'), 'YO (ROU)', 'YO = Romania');
+  assertEqual(w.getCountry('LZ1AB'),  'LZ (BGR)', 'LZ = Bulgaria');
+  assertEqual(w.getCountry('UR5XY'),  'UR (UKR)', 'UR = Ukraine');
+  assertEqual(w.getCountry('EU1AA'),  'EU (BLR)', 'EU = Belarus');
+
+  group('getCountry — portable suffix handling');
+  assertEqual(w.getCountry('S56OA/P'),  'S5 (SVN)', '/P suffix stripped correctly');
+  assertEqual(w.getCountry('DL1ABC/M'), 'DL (DEU)', '/M suffix stripped correctly');
+  assertEqual(w.getCountry('G4ZZZ/MM'), 'G (GBR)',  '/MM suffix stripped correctly');
+
+  // ════════════════════════════════════════════
+  //  parseEDI — parser
+  // ════════════════════════════════════════════
+  group('parseEDI — header parsing');
+  const minEDI = [
+    '[REG1TEST;1]',
+    'TName=Test Contest 2024',
+    'PCall=S56OA',
+    'PWWLo=JN75FO',
+    'PBand=144 MHz',
+    'SPowe=100',
+    '[QSORecords;2]',
+    '210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450',
+    '210703;1130;OK1XYZ;2;59;002;59;002;#;JN79IO;210',
+  ].join('\n');
+
+  const parsed = w.parseEDI(minEDI);
+  assertEqual(parsed.header['pcall'],  'S56OA',           'header: pcall');
+  assertEqual(parsed.header['pwwlo'],  'JN75FO',          'header: pwwlo');
+  assertEqual(parsed.header['tname'],  'Test Contest 2024','header: tname');
+  assertEqual(parsed.header['pband'],  '144 MHz',         'header: pband');
+  assertEqual(parsed.header['spowe'],  '100',             'header: spowe');
+
+  group('parseEDI — QSO records');
+  assertEqual(parsed.qsos.length, 2,          'two QSO records parsed');
+  assertEqual(parsed.qsos[0].call, 'DL1ABC',  'QSO[0] callsign');
+  assertEqual(parsed.qsos[0].mode, 1,         'QSO[0] mode = SSB');
+  assertEqual(parsed.qsos[0].wwl,  'JO31NC',  'QSO[0] locator');
+  assertEqual(parsed.qsos[0].dist, 450,        'QSO[0] distance');
+  assertEqual(parsed.qsos[0].hh,   10,         'QSO[0] hour');
+  assertEqual(parsed.qsos[0].mi,   0,          'QSO[0] minute');
+  assertEqual(parsed.qsos[0].dd,   3,          'QSO[0] day');
+  assertEqual(parsed.qsos[0].mm,   7,          'QSO[0] month');
+  assertEqual(parsed.qsos[0].timeStr, '10:00', 'QSO[0] timeStr formatted');
+  assertEqual(parsed.qsos[1].call, 'OK1XYZ',  'QSO[1] callsign');
+  assertEqual(parsed.qsos[1].mode, 2,          'QSO[1] mode = CW');
+  assertEqual(parsed.qsos[1].dist, 210,        'QSO[1] distance');
+
+  group('parseEDI — robustness');
+  const empty = w.parseEDI('');
+  assertEqual(empty.qsos.length, 0, 'empty input → 0 QSOs');
+  assert(typeof empty.header === 'object', 'empty input → header is object');
+
+  const noSection = w.parseEDI('PCall=TEST\nPWWLo=JN75FO');
+  assertEqual(noSection.header['pcall'], 'TEST', 'header parsed without QSORecords section');
+  assertEqual(noSection.qsos.length, 0, 'no QSORecords section → 0 QSOs');
+
+  const shortQso = [
+    '[QSORecords;1]',
+    '210703;1000;DL1ABC;1;59',  // only 5 fields — skipped
+  ].join('\n');
+  assertEqual(w.parseEDI(shortQso).qsos.length, 0, 'QSO with fewer than 10 fields is skipped');
+
+  const crlf = '[REG1TEST;1]\r\nPCall=S56OA\r\n[QSORecords;1]\r\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\r\n';
+  assertEqual(w.parseEDI(crlf).qsos.length, 1, 'CRLF line endings handled');
+
+  summary();
+});
+</script>
+</body>
+</html>
