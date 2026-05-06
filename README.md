@@ -24,6 +24,10 @@ Namenjena je radioamaterjem, ki tekmujejo v VHF (in UHF) tekmovanjih, kjer se za
 - **Scatter: azimut vs. razdalja** — razpršeni diagram po načinu dela
 - **Zveze po državah** — vrstičasti grafikon z detekcijo prefiksa
 - **Geografska karta lokatorjev** — SVG karta z Mercatorjevo projekcijo, premaknljiva in z možnostjo povečave; trije načini barvanja (razdalja / število QSO / način dela)
+- **Timeline QSO** — točkovni grafikon čas (UTC) vs. razdalja, obarvan po načinu dela
+- **Kumulativne točke** — stopničasti grafikon naraščanja skupnih km skozi čas tekmovanja
+- **Heatmap aktivnosti** — barvna matrika ura × razdalja (razredi po 100 km); izpostavi "zlato uro"
+- **Animirana karta zvez** — kronološko predvajanje QSO na SVG karti s časovnim drsnikom, prikazom UTC časa in statistike; nastavljiva hitrost, povečava in premikanje
 - **Tabeli QSO** — Top 15 po razdalji in celotna tabela vseh zvez
 - **Izvoz PNG** — vsak grafikon in karta se izvozi kot PNG slika z imenom postaje
 - **Tisk / PDF** — gumb za tiskanje oziroma shranjevanje v PDF neposredno iz brskalnika
@@ -101,6 +105,10 @@ It is aimed at amateur radio operators who participate in VHF (and UHF) contests
 - **Scatter: azimuth vs. distance** — scatter plot grouped by mode
 - **QSOs by country** — horizontal bar chart with automatic prefix detection
 - **Locator map** — pannable and zoomable SVG map (Mercator projection) with three colour modes: distance / QSO count / operating mode
+- **QSO timeline** — scatter plot of time (UTC) vs. distance, colour-coded by mode
+- **Cumulative points** — stepped line chart of accumulated km over contest time
+- **Activity heatmap** — colour matrix of contest hour × distance bucket (100 km bins); highlights the "golden hour"
+- **Animated QSO map** — chronological replay of QSOs on a zoomable SVG map with play/pause, time slider, UTC clock, QSO/km counter and adjustable speed
 - **QSO tables** — Top 15 by distance and full log table
 - **PNG export** — each chart and the map can be saved as a PNG image named after the station callsign
 - **Print / PDF** — one-click print or browser Save-as-PDF for a complete statistics report

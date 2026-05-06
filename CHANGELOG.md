@@ -5,6 +5,20 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.1.0] — 2026-05-06
+
+### Dodano
+- **Timeline QSO** — točkovni grafikon čas (UTC) vs. razdalja, obarvan po načinu dela (SSB/CW/FM)
+- **Kumulativne točke** — stopničasti črtni grafikon naraščanja skupnih km skozi čas tekmovanja
+- **Heatmap aktivnosti** — barvna matrika ura × razdalja (8 razredov po 100 km); prikaže "zlato uro"
+- **Animirana karta zvez** — SVG Mercatorjeva karta z kronološkim predvajanjem QSO; vključuje predvajanje/pavzo, časovni drsnik, prikaz UTC časa in števila QSO, 4 hitrosti, povečavo in premikanje
+- PNG izvoz za vse štiri nove vizualizacije
+- Nove i18n ključe za SL in EN vmesnik
+
+[1.1.0]: https://github.com/s56oa/EDIAnalitika/releases/tag/v1.1
+
+---
+
 ## [1.0.0] — 2026-05-06
 
 ### Dodano

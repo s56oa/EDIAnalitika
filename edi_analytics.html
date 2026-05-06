@@ -195,12 +195,30 @@ tr:hover td { background: rgba(88,166,255,0.04); }
   border-radius:6px; padding:0.4rem 0.9rem; font-size:0.8rem; cursor:pointer; transition:all 0.15s; }
 .pdf-btn:hover { border-color:var(--accent2); color:var(--accent2); }
 
+/* ── HEATMAP ─────────────────────────────── */
+#heatmapCanvas { display:block; }
+
+/* ── ANIMATED MAP ────────────────────────── */
+#animMapWrap { width:100%; border-radius:6px; background:#0d1a2a; position:relative; user-select:none; overflow:hidden; }
+#animMapSvg { width:100%; height:420px; display:block; cursor:grab; }
+#animMapSvg.panning { cursor:grabbing; }
+.anim-controls { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center; }
+.anim-btn { background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  border-radius:5px; padding:4px 12px; font-size:14px; cursor:pointer; transition:all 0.15s; }
+.anim-btn:hover { border-color:var(--accent); color:var(--accent); }
+.anim-btn.playing { background:var(--accent); color:#0d1117; border-color:var(--accent); font-weight:600; }
+.anim-slider { flex:1; min-width:120px; accent-color:var(--accent); cursor:pointer; }
+.anim-time { font-family:'Space Mono',monospace; font-size:12px; color:var(--text); min-width:90px; text-align:center; }
+.anim-stat { font-family:'Space Mono',monospace; font-size:11px; color:var(--muted); }
+.anim-speed-sel { background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  border-radius:5px; padding:3px 6px; font-size:11px; cursor:pointer; }
+
 /* ── PRINT / PDF ─────────────────────────────*/
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   @page { margin: 15mm 12mm; }
   header .lang-btn, header button, .pdf-btn, .reset-btn, .export-btn,
-  .map-controls, #locatorMap, #dropzone { display: none !important; }
+  .map-controls, #locatorMap, #dropzone, .anim-controls, #animMapWrap { display: none !important; }
   header { padding: 0.6rem 1rem; }
   #app { display: block !important; padding: 0 !important; max-width: 100% !important; }
   .metrics { grid-template-columns: repeat(6,1fr); gap:6px; }
@@ -215,7 +233,7 @@ tr:hover td { background: rgba(88,166,255,0.04); }
 
 <header>
   <div class="logo">EDI<span>//</span>LOG</div>
-  <span class="version-badge">v1.0</span>
+  <span class="version-badge">v1.1</span>
   <div id="hdrMeta" style="font-size:0.85rem;color:var(--muted);"></div>
   <h1 id="hdrTagline">radioamaterska log analitika</h1>
   <div style="display:flex;gap:4px;margin-left:1rem">
@@ -319,6 +337,69 @@ tr:hover td { background: rgba(88,166,255,0.04); }
     </div>
   </div>
 
+  <!-- Timeline + Cumulative points -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" data-i18n="chartTimeline">Timeline QSO: čas vs. razdalja</div>
+        <button class="export-btn" onclick="exportPNG('timelineChart')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button>
+      </div>
+      <canvas id="timelineChart" height="180"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" data-i18n="chartCumPts">Kumulativne točke skozi čas</div>
+        <button class="export-btn" onclick="exportPNG('cumPtsChart')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button>
+      </div>
+      <canvas id="cumPtsChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Activity heatmap -->
+  <div class="row1">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" data-i18n="chartHeatmap">Heatmap aktivnosti (ura × razdalja)</div>
+        <button class="export-btn" onclick="exportPNG('heatmapCanvas')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button>
+      </div>
+      <canvas id="heatmapCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Animated map -->
+  <div class="row1">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" data-i18n="chartAnimMap">Animirana karta zvez</div>
+        <button class="export-btn" onclick="exportPNG('animMapSvg')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button>
+      </div>
+      <div class="anim-controls">
+        <button class="anim-btn" id="animPlayBtn" onclick="animTogglePlay()">▶</button>
+        <button class="anim-btn" onclick="animGoReset()">⏮</button>
+        <input type="range" class="anim-slider" id="animSlider" min="0" max="1000" value="0" oninput="animSeek(this.value)">
+        <span class="anim-time" id="animTime">--:-- UTC</span>
+        <span class="anim-stat" id="animStat"></span>
+        <span class="anim-stat" data-i18n="animSpeed">Hitrost:</span>
+        <select class="anim-speed-sel" id="animSpeedSel" onchange="_amSpeed=parseInt(this.value)">
+          <option value="3">1×</option>
+          <option value="6" selected>2×</option>
+          <option value="15">5×</option>
+          <option value="30">10×</option>
+        </select>
+        <div class="map-zoom-btns" style="margin-left:auto">
+          <button class="map-zoom-btn" onclick="animMapZoom(1.4)">+</button>
+          <button class="map-zoom-btn" onclick="animMapZoom(1/1.4)">−</button>
+          <button class="map-zoom-btn" style="width:auto;padding:0 8px;font-size:11px" onclick="animMapFit()">⊡ fit</button>
+        </div>
+      </div>
+      <div id="animMapWrap">
+        <svg id="animMapSvg" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet" style="height:420px">
+          <g id="animZoomGroup"></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
   <div class="row1">
     <div class="card">
       <div class="card-header"><div class="card-title" data-i18n="tableTop">Top 15 QSO po razdalji</div></div>
@@ -338,7 +419,7 @@ tr:hover td { background: rgba(88,166,255,0.04); }
 // ═══════════════════════════════════════
 //  I18N
 // ═══════════════════════════════════════
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
 document.querySelector('.version-badge').textContent = 'v' + APP_VERSION;
 
 const STRINGS = {
@@ -364,6 +445,11 @@ sl:{
   errRead:'Napaka pri branju', errNoQso:'Ni najdenih QSO zapisov.',
   errEdi:'Datoteka mora imeti končnico .edi (REG1TEST format)',
   azX:'azimut (°)', azY:'razdalja (km)',
+  chartTimeline:'Timeline QSO: čas vs. razdalja',
+  chartCumPts:'Kumulativne točke skozi čas',
+  chartHeatmap:'Heatmap aktivnosti (ura × razdalja)',
+  chartAnimMap:'Animirana karta zvez',
+  animSpeed:'Hitrost:',
 },
 en:{
   tagline:'amateur radio log analytics',
@@ -387,6 +473,11 @@ en:{
   errRead:'Read error', errNoQso:'No QSO records found.',
   errEdi:'File must have .edi extension (REG1TEST format)',
   azX:'azimuth (°)', azY:'distance (km)',
+  chartTimeline:'QSO Timeline: time vs. distance',
+  chartCumPts:'Cumulative points over time',
+  chartHeatmap:'Activity heatmap (hour × distance)',
+  chartAnimMap:'Animated QSO map',
+  animSpeed:'Speed:',
 }};
 let _lang = 'sl';
 let _lastRenderData = null;
@@ -795,6 +886,7 @@ function render(data) {
   const startAbs = firstQ.yy*525600+firstQ.mm*44640+firstQ.dd*1440+firstQ.hh*60;
   const endAbs   = lastQ.yy*525600+lastQ.mm*44640+lastQ.dd*1440+lastQ.hh*60+lastQ.mi;
   const spanH    = Math.min(24, Math.ceil((endAbs-startAbs)/60) + 1);
+  qsos.forEach(q=>{ q._absMin=q.yy*525600+q.mm*44640+q.dd*1440+q.hh*60+q.mi; });
 
   // Build ordered hour slots: startHour, startHour+1, ..., wrapping mod 24
   const orderedH = Array.from({length:spanH},(_,i)=>(startHour+i)%24);
@@ -979,6 +1071,113 @@ function render(data) {
         y:{ ...scalesBase.y, min:0, title:{display:true,text:t('azY'),color:'#7d8590'}}}}
   });
 
+  // ── TIMELINE QSO SCATTER
+  const tlTickCb = v => {
+    const cm = (startAbs%1440) + Math.round(v);
+    return String(Math.floor(cm/60)%24).padStart(2,'0')+':'+String(Math.round(cm%60)).padStart(2,'0');
+  };
+  const tlGroups = {};
+  valid.forEach(q=>{
+    const off = q._absMin - startAbs;
+    if(!tlGroups[q.mode]) tlGroups[q.mode]=[];
+    tlGroups[q.mode].push({x:off, y:q.dist, call:q.call, ts:q.timeStr});
+  });
+  charts.timeline = new Chart(document.getElementById('timelineChart'),{
+    type:'scatter',
+    data:{datasets:Object.entries(tlGroups).map(([m,pts])=>({
+      label:modeName(parseInt(m)), data:pts,
+      backgroundColor:modeColors[parseInt(m)]||'#888',
+      pointRadius:4, pointHoverRadius:7,
+      pointStyle:parseInt(m)===2?'triangle':'circle',
+    }))},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:true,labels:{color:'#7d8590',font:{family:'DM Sans',size:12}}},
+        tooltip:{callbacks:{label:d=>`${d.raw.call} · ${d.raw.ts} · ${d.raw.y} km`}}},
+      scales:{
+        x:{...scalesBase.x,title:{display:true,text:'UTC',color:'#7d8590'},
+          ticks:{...scalesBase.x.ticks,maxTicksLimit:13,callback:tlTickCb}},
+        y:{...scalesBase.y,min:0,title:{display:true,text:t('azY'),color:'#7d8590'}}
+      }
+    }
+  });
+
+  // ── CUMULATIVE POINTS
+  const qsoChron=[...valid].sort((a,b)=>a._absMin-b._absMin);
+  let cumSum=0;
+  const cumData=[{x:0,y:0}];
+  qsoChron.forEach(q=>{ cumSum+=q.dist; cumData.push({x:q._absMin-startAbs,y:cumSum}); });
+  charts.cumPts=new Chart(document.getElementById('cumPtsChart'),{
+    type:'line',
+    data:{datasets:[{
+      data:cumData,
+      borderColor:'rgba(88,166,255,0.9)',backgroundColor:'rgba(88,166,255,0.08)',
+      fill:true,pointRadius:2,pointHoverRadius:5,stepped:'after',tension:0,
+    }]},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:d=>`${d.raw.y.toLocaleString()} km`}}},
+      scales:{
+        x:{...scalesBase.x,type:'linear',title:{display:true,text:'UTC',color:'#7d8590'},
+          ticks:{...scalesBase.x.ticks,maxTicksLimit:13,callback:tlTickCb}},
+        y:{...scalesBase.y,min:0,title:{display:true,text:t('metricPts')+' (km)',color:'#7d8590'}}
+      }
+    }
+  });
+
+  // ── HEATMAP (drawn after app visible)
+  function drawHeatmap(){
+    const canvas=document.getElementById('heatmapCanvas');
+    if(!canvas) return;
+    const NB=8;
+    const BKT=[0,100,200,300,400,500,600,700,Infinity];
+    const BLBL=['<100','100–200','200–300','300–400','400–500','500–600','600–700','>700'];
+    const NH=spanH;
+    const matrix=Array.from({length:NH},()=>new Array(NB).fill(0));
+    valid.forEach(q=>{
+      const slotH=Math.floor((q._absMin-startAbs)/60);
+      if(slotH<0||slotH>=NH) return;
+      let b=BKT.findIndex((v,i)=>q.dist>=v&&q.dist<BKT[i+1]);
+      if(b<0||b>=NB) b=NB-1;
+      matrix[slotH][b]++;
+    });
+    const maxC=Math.max(1,...matrix.flat());
+    const PAD_L=72,PAD_R=20,PAD_T=22,PAD_B=40;
+    const DPR=window.devicePixelRatio||1;
+    const cw=canvas.closest('.card')?.offsetWidth||800;
+    const CELL_W=Math.max(8,Math.floor((cw-PAD_L-PAD_R)/NH));
+    const CELL_H=28;
+    const W=PAD_L+NH*CELL_W+PAD_R;
+    const H=PAD_T+NB*CELL_H+PAD_B;
+    canvas.width=W*DPR; canvas.height=H*DPR;
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    const ctx=canvas.getContext('2d');
+    ctx.scale(DPR,DPR);
+    ctx.fillStyle='#161b22'; ctx.fillRect(0,0,W,H);
+    for(let h=0;h<NH;h++){
+      for(let b=0;b<NB;b++){
+        const cnt=matrix[h][NB-1-b];
+        const x=PAD_L+h*CELL_W, y=PAD_T+b*CELL_H;
+        const frac=cnt/maxC;
+        ctx.fillStyle=cnt===0?'#1c2333':
+          frac<0.15?'#1a4a2a':frac<0.35?'#2ea043':frac<0.60?'#3fb950':frac<0.80?'#58a6ff':'#ff7b72';
+        ctx.fillRect(x+1,y+1,CELL_W-2,CELL_H-2);
+        if(cnt>0){
+          ctx.fillStyle='#fff'; ctx.font='10px Space Mono,monospace';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText(cnt,x+CELL_W/2,y+CELL_H/2);
+        }
+      }
+    }
+    ctx.fillStyle='#7d8590'; ctx.font='10px DM Sans,sans-serif';
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    for(let b=0;b<NB;b++) ctx.fillText(BLBL[NB-1-b]+' km',PAD_L-4,PAD_T+b*CELL_H+CELL_H/2);
+    ctx.textAlign='center'; ctx.textBaseline='top'; ctx.font='10px Space Mono,monospace';
+    const step=Math.max(1,Math.ceil(NH/16));
+    for(let h=0;h<NH;h+=step){
+      ctx.fillText(String((startHour+h)%24).padStart(2,'0'),PAD_L+h*CELL_W+CELL_W/2,PAD_T+NB*CELL_H+5);
+    }
+  }
+
   // ── TABLES
   const thRow = `<tr>${[t('tblNum'),t('tblCall'),t('tblLoc'),t('tblDist'),t('tblMode'),t('tblTime'),t('tblDate')].map(h=>`<th>${h}</th>`).join('')}</tr>`;
   document.getElementById('topHead').innerHTML = thRow;
@@ -1006,7 +1205,12 @@ function render(data) {
   document.getElementById('hdrMeta').textContent = `${header['pcall']||''} · ${header['pband']||''} · ${header['tdate']||''}`;
 
   // Init compass now that layout is visible and clientWidth is real
-  requestAnimationFrame(() => { initCompass(); initMap(valid, header['pwwlo'], header['pcall']); });
+  requestAnimationFrame(() => {
+    initCompass();
+    initMap(valid, header['pwwlo'], header['pcall']);
+    drawHeatmap();
+    initAnimMap(valid, startAbs, endAbs, header['pwwlo'], header['pcall']);
+  });
 }
 
 // ═══════════════════════════════════════
@@ -1039,6 +1243,16 @@ function resetApp() {
   _mapQsosData = []; _mapHomeCall = ''; _workedBounds = null;
   const svg = document.getElementById('mapSvg');
   if(svg) { const dl=svg.querySelector('#dataLayer'); if(dl) svg.removeChild(dl); const bl=svg.querySelector('#baseLayer'); if(bl) svg.removeChild(bl); }
+  // Stop and clear animated map
+  if(_amInterval){ clearInterval(_amInterval); _amInterval=null; }
+  _amQsos=[]; _amBaseBuilt=false;
+  const azg=document.getElementById('animZoomGroup');
+  if(azg) while(azg.firstChild) azg.removeChild(azg.firstChild);
+  const pb=document.getElementById('animPlayBtn');
+  if(pb){ pb.textContent='▶'; pb.classList.remove('playing'); }
+  const sl=document.getElementById('animSlider'); if(sl) sl.value=0;
+  const at=document.getElementById('animTime'); if(at) at.textContent='--:-- UTC';
+  const as=document.getElementById('animStat'); if(as) as.textContent='';
   document.getElementById('app').style.display = 'none';
   document.getElementById('dropzone').style.display = 'flex';
   document.getElementById('hdrMeta').textContent = '';
@@ -1386,6 +1600,200 @@ function initMap(qsos,homeLocStr,homeCall){
   document.getElementById('btnColorDist').classList.add('active');
   buildBaseSvg(); renderMapData(); initMapPan();
   setTimeout(()=>{ if(_workedBounds) mapFitWorked(); }, 60);
+}
+
+// ═══════════════════════════════════════
+//  ANIMATED MAP
+// ═══════════════════════════════════════
+
+const ANIM_MAP_H = 420;
+let _amQsos=[], _amStartAbs=0, _amEndAbs=0, _amCurrentOff=0;
+let _amInterval=null, _amSpeed=6;
+let _amVx=0, _amVy=0, _amVz=1;
+let _amPanStart=null, _amPanInited=false, _amBaseBuilt=false;
+let _amHomeLocStr='JN75FO', _amHomeCall='';
+
+function applyAnimTransform(){
+  const g=document.getElementById('animZoomGroup');
+  if(g) g.setAttribute('transform',`translate(${_amVx.toFixed(2)},${_amVy.toFixed(2)}) scale(${_amVz.toFixed(4)})`);
+}
+
+function _amZoomAt(factor,svgX,svgY){
+  const newZ=Math.max(0.3,Math.min(60,_amVz*factor));
+  const f=newZ/_amVz; _amVx=svgX-(svgX-_amVx)*f; _amVy=svgY-(svgY-_amVy)*f; _amVz=newZ;
+  applyAnimTransform();
+}
+function animMapZoom(factor){ _amZoomAt(factor,MAP_W/2,ANIM_MAP_H/2); }
+function animMapFit(){
+  if(!_workedBounds) return;
+  const bw=_workedBounds.x1-_workedBounds.x0, bh=_workedBounds.y1-_workedBounds.y0;
+  _amVz=Math.min((MAP_W-100)/bw,(ANIM_MAP_H-100)/bh,30);
+  _amVx=MAP_W/2-(_workedBounds.x0+bw/2)*_amVz;
+  _amVy=ANIM_MAP_H/2-(_workedBounds.y0+bh/2)*_amVz;
+  applyAnimTransform();
+}
+
+function buildAnimBase(){
+  if(_amBaseBuilt) return;
+  _amBaseBuilt=true;
+  const zg=document.getElementById('animZoomGroup');
+  const NS='http://www.w3.org/2000/svg';
+  const sea=document.createElementNS(NS,'rect');
+  sea.setAttribute('x','-3000'); sea.setAttribute('y','-3000');
+  sea.setAttribute('width','9000'); sea.setAttribute('height','9000');
+  sea.setAttribute('fill','#0d1a2a'); zg.appendChild(sea);
+  const base=document.createElementNS(NS,'g'); base.id='animBaseLayer';
+  EU_SVG_PATHS.forEach(({d})=>{
+    const pf=document.createElementNS(NS,'path');
+    pf.setAttribute('d',d); pf.setAttribute('fill','#1e2e1a');
+    pf.setAttribute('stroke','#1e2e1a'); pf.setAttribute('stroke-width','1.5');
+    pf.setAttribute('stroke-linejoin','round'); pf.setAttribute('fill-rule','nonzero');
+    base.appendChild(pf);
+  });
+  EU_SVG_PATHS.forEach(({d})=>{
+    const pb=document.createElementNS(NS,'path');
+    pb.setAttribute('d',d); pb.setAttribute('fill','none');
+    pb.setAttribute('stroke','#2d4525'); pb.setAttribute('stroke-width','0.5');
+    pb.setAttribute('stroke-linejoin','round'); base.appendChild(pb);
+  });
+  zg.appendChild(base);
+  const grid=document.createElementNS(NS,'g'); grid.setAttribute('opacity','0.12');
+  for(let lon=-12;lon<=42;lon+=2){
+    const l=document.createElementNS(NS,'line');
+    l.setAttribute('x1',mX(lon)); l.setAttribute('y1',mY(72));
+    l.setAttribute('x2',mX(lon)); l.setAttribute('y2',mY(34));
+    l.setAttribute('stroke','#4a6a4a'); l.setAttribute('stroke-width','0.5'); grid.appendChild(l);
+  }
+  for(let lat=34;lat<=72;lat+=1){
+    const l=document.createElementNS(NS,'line');
+    l.setAttribute('x1',mX(-12)); l.setAttribute('y1',mY(lat));
+    l.setAttribute('x2',mX(42)); l.setAttribute('y2',mY(lat));
+    l.setAttribute('stroke','#4a6a4a'); l.setAttribute('stroke-width','0.5'); grid.appendChild(l);
+  }
+  zg.appendChild(grid);
+  const dl=document.createElementNS(NS,'g'); dl.id='animDataLayer'; zg.appendChild(dl);
+}
+
+function renderAnimFrame(){
+  const dl=document.getElementById('animDataLayer');
+  if(!dl) return;
+  while(dl.firstChild) dl.removeChild(dl.firstChild);
+  const NS='http://www.w3.org/2000/svg';
+  const totalOff=Math.max(1,_amEndAbs-_amStartAbs);
+  const visible=_amQsos.filter(q=>q._absMin-_amStartAbs<=_amCurrentOff);
+
+  const homePt=locToLatLon(_amHomeLocStr);
+  if(homePt){
+    const hx=mX(homePt.lon), hy=mY(homePt.lat);
+    const ci=document.createElementNS(NS,'circle');
+    ci.setAttribute('cx',hx); ci.setAttribute('cy',hy); ci.setAttribute('r','3');
+    ci.setAttribute('fill','#ff7b72'); dl.appendChild(ci);
+    const lbl=document.createElementNS(NS,'text');
+    lbl.setAttribute('x',hx+7); lbl.setAttribute('y',hy-4);
+    lbl.setAttribute('font-size','7'); lbl.setAttribute('font-family','Space Mono,monospace');
+    lbl.setAttribute('fill','#ff7b72'); lbl.setAttribute('font-weight','bold');
+    lbl.setAttribute('pointer-events','none');
+    lbl.textContent=_amHomeCall||_amHomeLocStr; dl.appendChild(lbl);
+  }
+
+  visible.forEach(q=>{
+    const p=locToLatLon(q.wwl); if(!p) return;
+    const qx=mX(p.lon), qy=mY(p.lat);
+    const age=_amCurrentOff-(q._absMin-_amStartAbs);
+    const opacity=Math.max(0.18, 1-age/(totalOff*0.85));
+    const base=q.mode===1?'88,166,255':q.mode===2?'63,185,80':'240,136,62';
+    if(homePt){
+      const line=document.createElementNS(NS,'line');
+      line.setAttribute('x1',mX(homePt.lon)); line.setAttribute('y1',mY(homePt.lat));
+      line.setAttribute('x2',qx); line.setAttribute('y2',qy);
+      line.setAttribute('stroke',`rgba(${base},${(opacity*0.28).toFixed(2)})`);
+      line.setAttribute('stroke-width','0.5'); dl.appendChild(line);
+    }
+    const ci=document.createElementNS(NS,'circle');
+    ci.setAttribute('cx',qx); ci.setAttribute('cy',qy);
+    ci.setAttribute('r', age<1?'5':'3');
+    ci.setAttribute('fill',`rgba(${base},${opacity.toFixed(2)})`); dl.appendChild(ci);
+  });
+
+  const cm=(_amStartAbs%1440)+_amCurrentOff;
+  const h=Math.floor(cm/60)%24, m=Math.round(cm%60);
+  const at=document.getElementById('animTime');
+  if(at) at.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+' UTC';
+  const as=document.getElementById('animStat');
+  if(as) as.textContent=visible.length+' QSO · '+visible.reduce((s,q)=>s+q.dist,0)+' km';
+  const sl=document.getElementById('animSlider');
+  if(sl) sl.value=Math.round(_amCurrentOff/totalOff*1000);
+}
+
+function animTogglePlay(){
+  const btn=document.getElementById('animPlayBtn');
+  if(_amInterval){
+    clearInterval(_amInterval); _amInterval=null;
+    if(btn){ btn.textContent='▶'; btn.classList.remove('playing'); }
+  } else {
+    const totalOff=_amEndAbs-_amStartAbs;
+    if(btn){ btn.textContent='⏸'; btn.classList.add('playing'); }
+    _amInterval=setInterval(()=>{
+      _amCurrentOff=Math.min(_amCurrentOff+_amSpeed,totalOff);
+      renderAnimFrame();
+      if(_amCurrentOff>=totalOff){
+        clearInterval(_amInterval); _amInterval=null;
+        const b=document.getElementById('animPlayBtn');
+        if(b){ b.textContent='▶'; b.classList.remove('playing'); }
+      }
+    },50);
+  }
+}
+
+function animGoReset(){
+  if(_amInterval){ clearInterval(_amInterval); _amInterval=null; }
+  const btn=document.getElementById('animPlayBtn');
+  if(btn){ btn.textContent='▶'; btn.classList.remove('playing'); }
+  _amCurrentOff=0; renderAnimFrame();
+  const sl=document.getElementById('animSlider'); if(sl) sl.value=0;
+}
+
+function animSeek(val){
+  const totalOff=_amEndAbs-_amStartAbs;
+  _amCurrentOff=Math.round(val/1000*totalOff);
+  renderAnimFrame();
+}
+
+function initAnimPan(){
+  if(_amPanInited) return;
+  _amPanInited=true;
+  const svg=document.getElementById('animMapSvg');
+  svg.addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    _amPanStart={x:e.clientX-_amVx,y:e.clientY-_amVy};
+    svg.classList.add('panning'); e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!_amPanStart) return;
+    _amVx=e.clientX-_amPanStart.x; _amVy=e.clientY-_amPanStart.y; applyAnimTransform();
+  });
+  window.addEventListener('mouseup',()=>{
+    _amPanStart=null; document.getElementById('animMapSvg')?.classList.remove('panning');
+  });
+  svg.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const rect=svg.getBoundingClientRect();
+    const svgX=(e.clientX-rect.left)/rect.width*MAP_W;
+    const svgY=(e.clientY-rect.top)/rect.height*ANIM_MAP_H;
+    _amZoomAt(e.deltaY<0?1.2:0.833,svgX,svgY);
+  },{passive:false});
+}
+
+function initAnimMap(validQsos, startAbsVal, endAbsVal, homeLoc, homeCall){
+  if(_amInterval){ clearInterval(_amInterval); _amInterval=null; }
+  const btn=document.getElementById('animPlayBtn');
+  if(btn){ btn.textContent='▶'; btn.classList.remove('playing'); }
+  _amQsos=validQsos.filter(q=>q._absMin!==undefined).sort((a,b)=>a._absMin-b._absMin);
+  _amStartAbs=startAbsVal; _amEndAbs=endAbsVal; _amCurrentOff=0;
+  _amHomeLocStr=homeLoc||'JN75FO'; _amHomeCall=homeCall||'';
+  _amVx=0; _amVy=0; _amVz=1;
+  buildAnimBase(); applyAnimTransform(); renderAnimFrame(); initAnimPan();
+  requestAnimationFrame(()=>animMapFit());
 }
 
 // ── drag & drop
