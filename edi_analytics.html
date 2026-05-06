@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDI Log Analitika</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #1c2333;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #7d8590;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --accent3: #f0883e;
+  --accent4: #ff7b72;
+  --card-radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+/* ── HEADER ─────────────────────────────── */
+header {
+  background: linear-gradient(135deg, #0d1117 0%, #1a2236 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 2rem;
+  display: flex; align-items: center; gap: 1rem;
+}
+.logo { font-family: 'Space Mono', monospace; font-size: 1.1rem; color: var(--accent); letter-spacing: -0.02em; }
+.logo span { color: var(--muted); }
+.version-badge { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px;
+  align-self: center; letter-spacing: 0.03em; }
+header h1 { font-size: 0.9rem; color: var(--muted); font-weight: 400; margin-left: auto; }
+
+/* ── DROP ZONE ───────────────────────────── */
+#dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: calc(100vh - 65px);
+  gap: 1.5rem; padding: 2rem;
+}
+.drop-box {
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 4rem 5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--bg2);
+  max-width: 480px; width: 100%;
+}
+.drop-box:hover, .drop-box.drag { border-color: var(--accent); background: rgba(88,166,255,0.05); }
+.drop-icon { font-size: 3rem; margin-bottom: 1rem; }
+.drop-title { font-family: 'Space Mono', monospace; font-size: 1rem; color: var(--text); margin-bottom: 0.5rem; }
+.drop-sub { font-size: 0.85rem; color: var(--muted); }
+.drop-btn {
+  background: var(--accent); color: #0d1117; border: none; border-radius: 6px;
+  padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  margin-top: 1.25rem; transition: opacity 0.15s;
+}
+.drop-btn:hover { opacity: 0.85; }
+#fileInput { display: none; }
+.drop-note { font-size: 0.78rem; color: var(--muted); max-width: 420px; text-align: center; line-height: 1.6; }
+
+/* ── MAIN LAYOUT ─────────────────────────── */
+#app { display: none; padding: 1.5rem 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+/* ── CONTEST HEADER BAND ─────────────────── */
+.contest-header {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
+}
+.contest-call { font-family: 'Space Mono', monospace; font-size: 1.6rem; color: var(--accent); font-weight: 700; }
+.contest-meta { display: flex; flex-direction: column; gap: 0.2rem; }
+.contest-meta .name { font-size: 0.95rem; font-weight: 500; }
+.contest-meta .sub { font-size: 0.8rem; color: var(--muted); }
+.reset-btn {
+  margin-left: auto; background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px; padding: 0.4rem 0.9rem;
+  font-size: 0.8rem; cursor: pointer; transition: all 0.15s;
+}
+.reset-btn:hover { border-color: var(--accent4); color: var(--accent4); }
+
+/* ── METRIC CARDS ────────────────────────── */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.metric {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--card-radius); padding: 1rem 1.1rem;
+}
+.metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.metric-val { font-family: 'Space Mono', monospace; font-size: 1.6rem; color: var(--text); line-height: 1; }
+.metric-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── CARDS ───────────────────────────────── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--card-radius); padding: 1.25rem 1.5rem;
+}
+.card-title {
+  font-family: 'Space Mono', monospace; font-size: 0.72rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+}
+.card-title::before { content: ''; display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+/* ── GRID LAYOUTS ────────────────────────── */
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.row1 { margin-bottom: 1rem; }
+@media (max-width: 900px) { .row2, .row3 { grid-template-columns: 1fr; } }
+
+/* ── COMPASS ─────────────────────────────── */
+#compassWrap { display: flex; justify-content: center; }
+#compassCanvas { cursor: crosshair; }
+#compassTip { font-size: 12px; color: var(--muted); text-align: center; min-height: 18px; margin-top: 8px; font-family: 'Space Mono', monospace; }
+
+/* ── BAR ROWS ────────────────────────────── */
+.bar-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+.bar-lbl { width: 90px; font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; background: var(--bg3); border-radius: 3px; height: 14px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.bar-val { width: 30px; font-size: 11px; color: var(--text); font-family: 'Space Mono', monospace; }
+
+/* ── QSO TABLE ───────────────────────────── */
+.qso-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { font-size: 10px; color: var(--muted); text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+td { padding: 5px 8px; border-bottom: 1px solid rgba(48,54,61,0.5); color: var(--text); font-family: 'Space Mono', monospace; font-size: 11px; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(88,166,255,0.04); }
+.badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px; font-family: 'Space Mono', monospace; }
+.ssb { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.cw  { background: rgba(63,185,80,0.15);  color: #3fb950; }
+
+/* ── LEGEND ──────────────────────────────── */
+.legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── OPERATORS ───────────────────────────── */
+.op-list { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.op-chip { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--accent); }
+
+/* ── LANG + EXPORT ──────────────────────────*/
+.lang-btn { background:transparent; border:1px solid var(--border); color:var(--muted);
+  border-radius:5px; padding:3px 9px; font-size:11px; font-weight:600;
+  cursor:pointer; transition:all 0.15s; font-family:'Space Mono',monospace; letter-spacing:.05em; }
+.lang-btn.active { background:var(--bg3); border-color:var(--accent); color:var(--accent); }
+.lang-btn:hover { border-color:var(--accent); color:var(--accent); }
+.card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.85rem; }
+.card-header .card-title { margin-bottom:0; }
+.export-btn { background:transparent; border:1px solid var(--border); color:var(--muted);
+  border-radius:5px; padding:2px 8px; font-size:10px; cursor:pointer;
+  transition:all 0.15s; display:flex; align-items:center; gap:4px; font-family:'DM Sans',sans-serif; }
+.export-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+/* ── ERROR ───────────────────────────────── */
+.err-toast { background: rgba(255,123,114,0.15); border: 1px solid rgba(255,123,114,0.3); border-radius: 8px; padding: 0.75rem 1rem; color: var(--accent4); font-size: 0.85rem; max-width: 480px; }
+
+/* ── MAP ─────────────────────────────────── */
+#locatorMap { width: 100%; border-radius: 6px; background: #0d1a2a; position: relative; user-select: none; overflow: hidden; }
+#mapSvg { width: 100%; height: 520px; display: block; cursor: grab; }
+#mapSvg.panning { cursor: grabbing; }
+.map-controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.map-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  border-radius: 5px; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s; font-family: "DM Sans",sans-serif; }
+.map-btn:hover { border-color: var(--accent); color: var(--accent); }
+.map-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+.map-zoom-btns { display: flex; gap: 4px; }
+.map-zoom-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  border-radius: 5px; width: 28px; height: 26px; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s; line-height: 1; }
+.map-zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+.map-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--muted); align-items: center; margin-left: auto; }
+.map-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.map-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; }
+.map-tooltip {
+  position: absolute; background: #1c2333; border: 1px solid #30363d;
+  border-radius: 6px; padding: 8px 12px; font-family: "Space Mono",monospace;
+  font-size: 11px; color: #e6edf3; pointer-events: none; z-index: 10;
+  max-width: 260px; line-height: 1.6; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.map-tooltip b { color: #58a6ff; font-size: 12px; }
+
+/* ── PDF BUTTON ──────────────────────────────*/
+.pdf-btn { background:transparent; border:1px solid var(--border); color:var(--muted);
+  border-radius:6px; padding:0.4rem 0.9rem; font-size:0.8rem; cursor:pointer; transition:all 0.15s; }
+.pdf-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+
+/* ── PRINT / PDF ─────────────────────────────*/
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  @page { margin: 15mm 12mm; }
+  header .lang-btn, header button, .pdf-btn, .reset-btn, .export-btn,
+  .map-controls, #locatorMap, #dropzone { display: none !important; }
+  header { padding: 0.6rem 1rem; }
+  #app { display: block !important; padding: 0 !important; max-width: 100% !important; }
+  .metrics { grid-template-columns: repeat(6,1fr); gap:6px; }
+  .row2, .row3 { grid-template-columns: 1fr 1fr !important; }
+  .card { page-break-inside: avoid; margin-bottom: 8px; }
+  #compassCanvas { max-width: 280px !important; max-height: 280px !important; }
+  canvas { max-width: 100% !important; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EDI<span>//</span>LOG</div>
+  <span class="version-badge">v1.0</span>
+  <div id="hdrMeta" style="font-size:0.85rem;color:var(--muted);"></div>
+  <h1 id="hdrTagline">radioamaterska log analitika</h1>
+  <div style="display:flex;gap:4px;margin-left:1rem">
+    <button class="lang-btn active" id="btnLangSL" onclick="setLang('sl')">SL</button>
+    <button class="lang-btn" id="btnLangEN" onclick="setLang('en')">EN</button>
+  </div>
+</header>
+
+<!-- DROP ZONE -->
+<div id="dropzone">
+  <div class="drop-box" id="dropBox">
+    <div class="drop-icon">📡</div>
+    <div class="drop-title" data-i18n="dropTitle">Naloži EDI dnevnik</div>
+    <div class="drop-sub" data-i18n="dropSub">povleci datoteko sem ali klikni spodaj</div>
+    <button class="drop-btn" onclick="document.getElementById('fileInput').click()" data-i18n="dropBtn">Izberi datoteko</button>
+    <input type="file" id="fileInput" accept=".edi,.EDI">
+  </div>
+  <div id="errBox"></div>
+  <div class="drop-note" data-i18n="dropNote">Podpira format REG1TEST EDI (v1). Datoteka se obdela lokalno v brskalniku — nič se ne pošlje na strežnik.</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="contest-header">
+    <div class="contest-call" id="hdrCall"></div>
+    <div class="contest-meta">
+      <div class="name" id="hdrName"></div>
+      <div class="sub" id="hdrSub"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-left:1rem">
+      <div style="font-size:12px;color:var(--muted)" data-i18n="labelOps">Operatorji:</div>
+      <div class="op-list" id="hdrOps"></div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0">
+      <button class="pdf-btn" onclick="window.print()" data-i18n="btnPrint">Natisni / PDF</button>
+      <button class="reset-btn" style="margin-left:0" onclick="resetApp()" data-i18n="btnReset">↩ Nov dnevnik</button>
+    </div>
+  </div>
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="row1">
+    <div class="card">
+      <div class="card-header"><div class="card-title" data-i18n="chartHour">Aktivnost po urah (UTC)</div><button class="export-btn" onclick="exportPNG('hourChart')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button></div>
+      <canvas id="hourChart" height="90"></canvas>
+    </div>
+  </div>
+
+  <div class="row2" style="align-items:stretch">
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-header"><div class="card-title" data-i18n="chartDist">Porazdelitev razdalj</div><button class="export-btn" onclick="exportPNG('distChart')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button></div>
+      <div style="flex:1;min-height:160px;position:relative"><canvas id="distChart" style="position:absolute;inset:0;width:100%!important;height:100%!important"></canvas></div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-header"><div class="card-title" data-i18n="chartMode">Način dela (SSB / CW / FM)</div><button class="export-btn" onclick="exportPNG('modeChart')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button></div>
+      <div class="legend" id="modeLegend"></div>
+      <div style="flex:1;min-height:140px;position:relative"><canvas id="modeChart" style="position:absolute;inset:0;width:100%!important;height:100%!important"></canvas></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-header"><div class="card-title" data-i18n="chartCompass">Kompasni diagram (azimut + razdalja)</div><button class="export-btn" onclick="exportPNG('compassCanvas')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button></div>
+      <div id="compassWrap"><canvas id="compassCanvas"></canvas></div>
+      <div id="compassTip"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title" data-i18n="chartCountry">Zveze po državah (prefix)</div><button class="export-btn" onclick="exportPNG('countryBarsWrap')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button></div>
+      <div id="countryBarsWrap"><div id="countryBars"></div></div>
+    </div>
+  </div>
+
+  <div class="row1">
+    <div class="card">
+      <div class="card-header"><div class="card-title" data-i18n="chartAz">Scatter: azimut vs. razdalja</div><button class="export-btn" onclick="exportPNG('azChart')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button></div>
+      <canvas id="azChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="row1">
+    <div class="card">
+      <div class="card-header"><div class="card-title" data-i18n="chartMap">Geografska karta lokatorjev</div><button class="export-btn" onclick="exportPNG('mapSvg')"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V3h3v5H12L8 12zm-5 2h10v1.5H3V14z"/></svg> PNG</button></div>
+      <div class="map-controls">
+        <button class="map-btn active" id="btnColorDist" onclick="setMapColor('dist')" data-i18n="mapColorDist">Barva = razdalja</button>
+        <button class="map-btn" id="btnColorQso" onclick="setMapColor('qso')" data-i18n="mapColorQso">Barva = št. QSO</button>
+        <button class="map-btn" id="btnColorMode" onclick="setMapColor('mode')" data-i18n="mapColorMode">Barva = način (SSB/CW)</button>
+        <div class="map-zoom-btns">
+          <button class="map-zoom-btn" onclick="mapZoom(1.4)" title="Povečaj">+</button>
+          <button class="map-zoom-btn" onclick="mapZoom(1/1.4)" title="Pomanjšaj">−</button>
+          <button class="map-zoom-btn" onclick="mapFitWorked()" title="Prikaži delovane lokatorje" style="width:auto;padding:0 8px;font-size:11px">⊡ fit</button>
+          <button class="map-zoom-btn" onclick="mapFitEurope()" title="Celotna Evropa" style="width:auto;padding:0 8px;font-size:11px">EU</button>
+        </div>
+        <div class="map-legend" id="mapLegend"></div>
+      </div>
+      <div id="locatorMap">
+        <svg id="mapSvg" viewBox="0 0 900 520" preserveAspectRatio="xMidYMid meet" style="height:520px">
+          <g id="mapZoomGroup"></g>
+        </svg>
+        <div class="map-tooltip" id="mapTooltip"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row1">
+    <div class="card">
+      <div class="card-header"><div class="card-title" data-i18n="tableTop">Top 15 QSO po razdalji</div></div>
+      <div class="qso-wrap"><table><thead id="topHead"></thead><tbody id="topBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="row1">
+    <div class="card">
+      <div class="card-header"><div class="card-title" data-i18n="tableAll">Vse zveze</div></div>
+      <div class="qso-wrap"><table><thead id="allHead"></thead><tbody id="allBody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  I18N
+// ═══════════════════════════════════════
+const APP_VERSION = '1.0';
+document.querySelector('.version-badge').textContent = 'v' + APP_VERSION;
+
+const STRINGS = {
+sl:{
+  tagline:'radioamaterska log analitika',
+  dropTitle:'Naloži EDI dnevnik', dropSub:'povleci datoteko sem ali klikni spodaj',
+  dropBtn:'Izberi datoteko',
+  dropNote:'Podpira format REG1TEST EDI (v1). Datoteka se obdela lokalno v brskalniku — nič se ne pošlje na strežnik.',
+  btnReset:'↩ Nov dnevnik', btnPrint:'Natisni / PDF', labelOps:'Operatorji:',
+  chartHour:'Aktivnost po urah (UTC)', chartDist:'Porazdelitev razdalj',
+  chartMode:'Način dela (SSB / CW / FM)', chartCompass:'Kompasni diagram (azimut + razdalja)',
+  chartCountry:'Zveze po državah (prefix)', chartAz:'Scatter: azimut vs. razdalja',
+  chartMap:'Geografska karta lokatorjev',
+  tableTop:'Top 15 QSO po razdalji', tableAll:'Vse zveze',
+  mapColorDist:'Barva = razdalja', mapColorQso:'Barva = št. QSO', mapColorMode:'Barva = način (SSB/CW)',
+  metricQso:'QSO skupaj', metricPts:'Točke', metricWwl:'Kvadranti', metricDxcc:'Držav',
+  metricOdx:'Maks. razdalja', metricPwr:'Moč TX',
+  metricMult:'množitelji', metricInvalid:'neveljavni',
+  tblNum:'#', tblCall:'Klicni znak', tblLoc:'Lokator', tblDist:'Razdalja',
+  tblMode:'Način', tblTime:'Čas', tblDate:'Datum',
+  distLegend:['<100','100–200','200–300','300–400','400–500','500–600','600–700','>700'],
+  modeLegendSuffix:'QSO', mapTooltipQso:'QSO', mapTooltipAvg:'ø', mapTooltipMax:'max',
+  errRead:'Napaka pri branju', errNoQso:'Ni najdenih QSO zapisov.',
+  errEdi:'Datoteka mora imeti končnico .edi (REG1TEST format)',
+  azX:'azimut (°)', azY:'razdalja (km)',
+},
+en:{
+  tagline:'amateur radio log analytics',
+  dropTitle:'Load EDI Log', dropSub:'drag file here or click below',
+  dropBtn:'Choose file',
+  dropNote:'Supports REG1TEST EDI format (v1). File is processed locally — nothing is sent to a server.',
+  btnReset:'↩ New log', btnPrint:'Print / PDF', labelOps:'Operators:',
+  chartHour:'Activity by hour (UTC)', chartDist:'Distance distribution',
+  chartMode:'Mode (SSB / CW / FM)', chartCompass:'Compass diagram (azimuth + distance)',
+  chartCountry:'QSOs by country (prefix)', chartAz:'Scatter: azimuth vs. distance',
+  chartMap:'Locator map',
+  tableTop:'Top 15 QSOs by distance', tableAll:'All QSOs',
+  mapColorDist:'Color = distance', mapColorQso:'Color = # QSOs', mapColorMode:'Color = mode (SSB/CW)',
+  metricQso:'Total QSOs', metricPts:'Points', metricWwl:'Squares', metricDxcc:'Countries',
+  metricOdx:'Max distance', metricPwr:'TX power',
+  metricMult:'multipliers', metricInvalid:'invalid',
+  tblNum:'#', tblCall:'Callsign', tblLoc:'Locator', tblDist:'Distance',
+  tblMode:'Mode', tblTime:'Time', tblDate:'Date',
+  distLegend:['<100','100–200','200–300','300–400','400–500','500–600','600–700','>700'],
+  modeLegendSuffix:'QSOs', mapTooltipQso:'QSOs', mapTooltipAvg:'avg', mapTooltipMax:'max',
+  errRead:'Read error', errNoQso:'No QSO records found.',
+  errEdi:'File must have .edi extension (REG1TEST format)',
+  azX:'azimuth (°)', azY:'distance (km)',
+}};
+let _lang = 'sl';
+let _lastRenderData = null;
+function t(k){ return (STRINGS[_lang]||STRINGS.sl)[k] ?? (STRINGS.sl[k] ?? k); }
+function escapeHTML(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function setLang(lang){
+  _lang = lang;
+  document.getElementById('btnLangSL').classList.toggle('active', lang==='sl');
+  document.getElementById('btnLangEN').classList.toggle('active', lang==='en');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.getElementById('hdrTagline').textContent = t('tagline');
+  if(document.getElementById('app').style.display !== 'none' && _lastRenderData){
+    render(_lastRenderData);
+  }
+}
+
+// ═══════════════════════════════════════
+//  PNG EXPORT
+// ═══════════════════════════════════════
+function exportPNG(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const call = document.getElementById('hdrCall')?.textContent || 'log';
+  const fname = id + '_' + call + '.png';
+
+  // ── Chart.js canvas
+  if(el.tagName === 'CANVAS'){
+    const tmp = document.createElement('canvas');
+    tmp.width = el.width; tmp.height = el.height;
+    const tc = tmp.getContext('2d');
+    tc.fillStyle = '#161b22'; tc.fillRect(0,0,tmp.width,tmp.height);
+    tc.drawImage(el,0,0);
+    _dlPNG(tmp, fname); return;
+  }
+
+  // ── SVG map — serialize with inline styles, render via Image
+  if(el.tagName === 'SVG'){
+    const W = el.clientWidth  || 900;
+    const H = el.clientHeight || 520;
+    const DPR = 2;
+
+    // Clone SVG and inline critical styles so it renders standalone
+    const clone = el.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    clone.setAttribute('width', W);
+    clone.setAttribute('height', H);
+    // Add embedded CSS for fonts (system fallback — no external requests)
+    const style = document.createElementNS('http://www.w3.org/2000/svg','style');
+    style.textContent = 'text { font-family: monospace; } ';
+    clone.insertBefore(style, clone.firstChild);
+
+    const svgStr = new XMLSerializer().serializeToString(clone);
+    const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = W * DPR; c.height = H * DPR;
+      const ctx2 = c.getContext('2d');
+      ctx2.fillStyle = '#0d1a2a';
+      ctx2.fillRect(0, 0, c.width, c.height);
+      ctx2.drawImage(img, 0, 0, c.width, c.height);
+      _dlPNG(c, fname);
+    };
+    img.onerror = () => {
+      // Fallback: screenshot via canvas drawImage of the live element
+      // Works in Firefox; Safari may still block but at least tries
+      try {
+        const c = document.createElement('canvas');
+        c.width = W * DPR; c.height = H * DPR;
+        const ctx2 = c.getContext('2d');
+        ctx2.fillStyle = '#0d1a2a';
+        ctx2.fillRect(0, 0, c.width, c.height);
+        _dlPNG(c, fname);
+      } catch(e) { console.warn('Map export failed:', e); }
+    };
+    img.src = svgB64;
+    return;
+  }
+
+  // ── Country bars DIV — draw directly on canvas (no foreignObject)
+  if(id === 'countryBarsWrap'){
+    const bars = document.querySelectorAll('#countryBars .bar-row');
+    if(!bars.length) return;
+    const PAD=20, LBL=100, BAR_H=16, GAP=7, VAL_W=36;
+    const W2 = (el.closest('.card')||el).offsetWidth - PAD*2;
+    const H2 = PAD + bars.length*(BAR_H+GAP) + PAD;
+    const DPR=2;
+    const c=document.createElement('canvas');
+    c.width=W2*DPR; c.height=H2*DPR;
+    const cx=c.getContext('2d');
+    cx.scale(DPR,DPR);
+    cx.fillStyle='#161b22'; cx.fillRect(0,0,W2,H2);
+    let y=PAD;
+    bars.forEach(row=>{
+      const lbl = row.querySelector('.bar-lbl')?.textContent||'';
+      const val = row.querySelector('.bar-val')?.textContent||'';
+      const fill = row.querySelector('.bar-fill');
+      const pct = fill ? parseFloat(fill.style.width)||0 : 0;
+      const color = fill ? fill.style.background : '#888';
+      const barW = W2 - PAD - LBL - GAP - VAL_W;
+      // label
+      cx.fillStyle='#7d8590'; cx.font='11px "DM Sans",sans-serif';
+      cx.textAlign='right'; cx.textBaseline='middle';
+      cx.fillText(lbl, PAD+LBL-4, y+BAR_H/2);
+      // track
+      cx.fillStyle='#1c2333';
+      cx.beginPath(); cx.roundRect(PAD+LBL, y, barW, BAR_H, 3); cx.fill();
+      // fill
+      const fw2=Math.round(barW*pct/100);
+      if(fw2>0){
+        cx.fillStyle=color;
+        cx.beginPath(); cx.roundRect(PAD+LBL, y, fw2, BAR_H, 3); cx.fill();
+      }
+      // value
+      cx.fillStyle='#e6edf3'; cx.font='11px "Space Mono",monospace';
+      cx.textAlign='left'; cx.textBaseline='middle';
+      cx.fillText(val, PAD+LBL+barW+6, y+BAR_H/2);
+      y += BAR_H+GAP;
+    });
+    _dlPNG(c, fname); return;
+  }
+}
+function _dlPNG(canvas, fname){
+  const a=document.createElement('a'); a.download=fname; a.href=canvas.toDataURL('image/png'); a.click();
+}
+
+// ═══════════════════════════════════════
+//  EDI PARSER
+// ═══════════════════════════════════════
+function parseEDI(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  const header = {};
+  const qsos = [];
+  let section = '';
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith('[')) { section = line.toLowerCase(); continue; }
+
+    if (section === '[qsorecords' || section.startsWith('[qsorecords;')) {
+      // date;time;call;mode;txrst;txnr;rxrst;rxnr;exchange;wwl;dist;...
+      const p = line.split(';');
+      if (p.length < 10) continue;
+      const dateStr = p[0]; // YYMMDD
+      const timeStr = p[1]; // HHMM
+      const call = p[2].trim();
+      const mode = parseInt(p[3]) || 1; // 1=SSB,2=CW,3=FM
+      const txnr = p[5].trim();
+      const rxnr = p[7].trim();
+      const wwl  = p[9].trim();
+      const dist = parseInt(p[10]) || 0;
+
+      const yy = parseInt(dateStr.substring(0,2));
+      const mm = parseInt(dateStr.substring(2,4));
+      const dd = parseInt(dateStr.substring(4,6));
+      const hh = parseInt(timeStr.substring(0,2));
+      const mi = parseInt(timeStr.substring(2,4));
+
+      qsos.push({ call, mode, wwl, dist, hh, mi, dd, mm, yy,
+        timeStr: `${String(hh).padStart(2,'0')}:${String(mi).padStart(2,'0')}`,
+        dateStr: `${String(dd).padStart(2,'0')}.${String(mm).padStart(2,'0')}.20${String(yy).padStart(2,'0')}`,
+        txnr, rxnr });
+    } else {
+      const eq = line.indexOf('=');
+      if (eq > 0) header[line.substring(0,eq).toLowerCase()] = line.substring(eq+1).trim();
+    }
+  }
+  return { header, qsos };
+}
+
+// ═══════════════════════════════════════
+//  LOCATOR MATH
+// ═══════════════════════════════════════
+function locToLatLon(loc) {
+  const l = (loc+'').toUpperCase().trim();
+  if (l.length < 6) return null;
+  const lon = (l.charCodeAt(0)-65)*20 - 180 + parseInt(l[2])*2 + (l.charCodeAt(4)-65)*2/24 + 1/24;
+  const lat = (l.charCodeAt(1)-65)*10 - 90  + parseInt(l[3])*1 + (l.charCodeAt(5)-65)*1/24 + 0.5/24;
+  if (isNaN(lon)||isNaN(lat)) return null;
+  return {lat, lon};
+}
+function bearing(la1,lo1,la2,lo2) {
+  const r=Math.PI/180, dL=(lo2-lo1)*r;
+  const y=Math.sin(dL)*Math.cos(la2*r);
+  const x=Math.cos(la1*r)*Math.sin(la2*r)-Math.sin(la1*r)*Math.cos(la2*r)*Math.cos(dL);
+  return ((Math.atan2(y,x)*180/Math.PI)+360)%360;
+}
+function haversine(la1,lo1,la2,lo2) {
+  const R=6371,r=Math.PI/180,dLa=(la2-la1)*r,dLo=(lo2-lo1)*r;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dLo/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+
+// ═══════════════════════════════════════
+//  PREFIX → COUNTRY
+// ═══════════════════════════════════════
+// Prefix table — order matters: more specific first
+// Sources: ITU, DXCC list, REG1TEST callsign conventions
+const PFX = [
+  // Slovenia
+  [/^S5/, 'S5 (SVN)'],
+  // Bosnia & Herzegovina — E7, T9
+  [/^E7/, 'E7 (BIH)'],
+  [/^T9/, 'T9 (BIH)'],
+  // Croatia
+  [/^9A/, '9A (HRV)'],
+  // Czech Republic
+  [/^(OK|OL)/, 'OK (CZE)'],
+  // Slovakia
+  [/^OM/, 'OM (SVK)'],
+  // Germany — all D-prefixes
+  [/^(DA|DB|DC|DD|DE|DF|DG|DH|DI|DJ|DK|DL|DM|DN|DO|DP|DQ|DR)/, 'DL (DEU)'],
+  // Austria
+  [/^OE/, 'OE (AUT)'],
+  // Hungary
+  [/^(HA|HG)/, 'HA (HUN)'],
+  // Romania
+  [/^(YO|YP|YQ|YR)/, 'YO (ROU)'],
+  // Bulgaria
+  [/^LZ/, 'LZ (BGR)'],
+  // Serbia — YU4/YU5 still used; YT, YZ new
+  [/^(YU|YT|YZ)/, 'YU (SRB)'],
+  // Montenegro
+  [/^4O/, '4O (MNE)'],
+  // North Macedonia
+  [/^Z3/, 'Z3 (MKD)'],
+  // Albania
+  [/^ZA/, 'ZA (ALB)'],
+  // Kosovo
+  [/^Z6/, 'Z6 (XKX)'],
+  // Poland
+  [/^(SP|SQ|SR|SN|SO|HF|3Z)/, 'SP (POL)'],
+  // Great Britain — G, M + regional
+  [/^(G|M|2E|2I|2M|2W)/, 'G (GBR)'],
+  [/^(GW|MW|2W)/, 'GW (WAL)'],
+  [/^(GI|MI|2I)/, 'GI (NIR)'],
+  [/^(GM|MM|2M)/, 'GM (SCO)'],
+  [/^(GD|MD)/, 'GD (IOM)'],
+  [/^(GJ|MJ)/, 'GJ (JER)'],
+  [/^(GU|MU)/, 'GU (GUE)'],
+  // Ireland
+  [/^(EI|EJ)/, 'EI (IRL)'],
+  // France
+  [/^(F|TM|TK|TP|TO)/, 'F (FRA)'],  // TK=Corsica, TP=CoE Strasbourg, TO=overseas
+  // Liechtenstein — must be before Switzerland!
+  [/^HB0/, 'HB0 (LIE)'],
+  // Switzerland
+  [/^(HB|HE)/, 'HB (SUI)'],
+  // Netherlands
+  [/^(PA|PB|PC|PD|PE|PF|PG|PH|PI)/, 'PA (HOL)'],
+  // Belgium
+  [/^(ON|OO|OP|OQ|OR|OS|OT)/, 'ON (BEL)'],
+  // Luxembourg
+  [/^LX/, 'LX (LUX)'],
+  // Sweden
+  [/^(SM|SK|SL|7S|8S)/, 'SM (SWE)'],
+  // Norway
+  [/^(LA|LB|LC|LD|LE|LF|LG|LI|LJ|LN)/, 'LA (NOR)'],
+  // Finland
+  [/^(OH|OF|OG|OI)/, 'OH (FIN)'],
+  // Estonia
+  [/^ES/, 'ES (EST)'],
+  // Latvia
+  [/^YL/, 'YL (LVA)'],
+  // Lithuania
+  [/^LY/, 'LY (LTU)'],
+  // Spain — EA, EB, EC, ED, EE, EF, EG, EH + EA6 (Balearic), EA8 (Canary) same country
+  [/^(EA|EB|EC|ED|EE|EF|EG|EH|AM|AN|AO|AP)/, 'EA (ESP)'],
+  // Portugal — CT, CQ, CR, CS
+  [/^(CT|CQ|CR|CS)/, 'CT (PRT)'],
+  // Italy — I + all two-letter combos; IH9 (Pantelleria), IS0 (Sardinia), IT9 (Sicily) = Italy
+  [/^(I[A-Z0-9]|I\d)/, 'I (ITA)'],
+  [/^I/, 'I (ITA)'],
+  // Denmark — OZ, 5P, 5Q, OU, OV, OW (Faroe = OY, Greenland = OX)
+  [/^(OZ|5P|5Q|OU|OV|OW)/, 'OZ (DNK)'],
+  [/^OX/, 'OX (GRL)'],
+  [/^OY/, 'OY (FRO)'],
+  // Ukraine — UT, UB, UC, UD, UE, UF, UG, UH, UI, UR, US, UX, UY, UZ, EM, EN, EO, EW... wait EW=BLR
+  [/^(UT|UB|UC|UD|UE|UF|UG|UH|UI|UR|US|UV|UW|UX|UY|UZ|EM|EN|EO|EV)/, 'UR (UKR)'],  // UV, UW added
+  // Belarus
+  [/^(EU|EV|EW)/, 'EU (BLR)'],
+  // Moldova
+  [/^ER/, 'ER (MDA)'],
+  // Greece — SV; SV5=Dodecanese, SV9=Crete = same country
+  [/^(SV|SY)/, 'SV (GRC)'],
+  // Cyprus
+  [/^5B/, '5B (CYP)'],
+  // Turkey
+  [/^(TA|TB|TC|YM)/, 'TA (TUR)'],
+  // Israel
+  [/^4X/, '4X (ISR)'],
+  // Iceland
+  [/^TF/, 'TF (ISL)'],
+  // Faroe (already above as OY)
+  // Malta
+  [/^9H/, '9H (MLT)'],
+  // San Marino
+  [/^T7/, 'T7 (SMR)'],
+  // Vatican
+  [/^HV/, 'HV (VAT)'],
+  // Monaco
+  [/^3A/, '3A (MCO)'],
+  // Andorra
+  [/^C3/, 'C3 (AND)'],
+  // Russia — UA through UZ plus RA-RZ
+  [/^(UA|UB|UC|UD|UE|UF|UG|UH|UI|RA|RB|RC|RD|RE|RF|RG|RH|RI|RJ|RK|RL|RM|RN|RO|RP|RQ|RR|RS|RT|RU|RV|RW|RX|RY|RZ|R\d)/, 'UA (RUS)'],
+];
+function getCountry(call) {
+  // Strip portable suffix for matching (e.g. S57M/P → S57M)
+  const base = call.split('/')[0];
+  for (const [re, name] of PFX) if (re.test(base)) return name;
+  // Fallback: first 1-3 chars
+  const m = base.match(/^([A-Z]{1,2}\d|[A-Z]{1,3})/);
+  return m ? m[1] : '?';
+}
+
+function modeName(m) { return m===1?'SSB': m===2?'CW': m===3?'FM':'??'; }
+function modeClass(m){ return m===1?'ssb': m===2?'cw': 'ssb'; }
+
+// ═══════════════════════════════════════
+//  CHART INSTANCES (for destroy on reload)
+// ═══════════════════════════════════════
+let charts = {};
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+}
+
+// ═══════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════
+function render(data) {
+  _lastRenderData = data;
+  const { header, qsos } = data;
+  destroyCharts();
+
+  // Enrich with az/bearing from home loc
+  const homeLoc = locToLatLon(header['pwwlo'] || 'JN75FO');
+  qsos.forEach(q => {
+    const p = locToLatLon(q.wwl);
+    if (p && homeLoc) {
+      q.az  = Math.round(bearing(homeLoc.lat, homeLoc.lon, p.lat, p.lon));
+      if (!q.dist || q.dist === 0) q.dist = haversine(homeLoc.lat, homeLoc.lon, p.lat, p.lon);
+    } else {
+      q.az = null;
+    }
+  });
+
+  const valid = qsos.filter(q => q.dist > 0);
+  const invalid = qsos.length - valid.length;
+
+  // ── HEADER
+  document.getElementById('hdrCall').textContent = header['pcall'] || '?';
+  document.getElementById('hdrName').textContent = header['tname'] || '';
+  const band = header['pband']||''; const loc = header['pwwlo']||''; const sect = header['psect']||'';
+  document.getElementById('hdrSub').textContent = [band, loc, sect].filter(Boolean).join(' · ');
+  const ops = (header['mope1']||header['pcall']||'').split(';').filter(Boolean);
+  document.getElementById('hdrOps').innerHTML = ops.map(o=>`<div class="op-chip">${escapeHTML(o)}</div>`).join('');
+
+  // ── METRICS
+  const pts = parseInt(header['cqsop'])||valid.reduce((s,q)=>s+q.dist,0);
+  const wls = parseInt((header['cwwls']||'').split(';')[0])||0;
+  const dxcs= parseInt((header['cdxcs']||'').split(';')[0])||0;
+  const maxD = valid.reduce((m,q)=>q.dist>m.dist?q:m, {dist:0});
+  const metricsEl = document.getElementById('metrics');
+  const mArr = [
+    [t('metricQso'), qsos.length, invalid>0?`${invalid} ${t('metricInvalid')}`:''],
+    [t('metricPts'), pts.toLocaleString(_lang==='sl'?'sl':'en-US'), 'CQSOP'],
+    [t('metricWwl'), wls||[...new Set(valid.map(q=>q.wwl.substring(0,4)))].length, t('metricMult')],
+    [t('metricDxcc'), dxcs||[...new Set(valid.map(q=>getCountry(q.call)))].length, 'DXCC'],
+    [t('metricOdx'), maxD.dist ? maxD.dist+' km' : '–', escapeHTML(maxD.call||'')],
+    [t('metricPwr'), escapeHTML((header['spowe']||'?')+' W'), escapeHTML(header['sante']||'')],
+  ];
+  metricsEl.innerHTML = mArr.map(([l,v,s])=>
+    `<div class="metric"><div class="metric-label">${l}</div><div class="metric-val">${v}</div><div class="metric-sub">${s}</div></div>`
+  ).join('');
+
+  const CC = { gridColor:'rgba(255,255,255,0.06)', tickColor:'#7d8590', font:'DM Sans' };
+  const scalesBase = {
+    x:{ ticks:{color:CC.tickColor,font:{family:CC.font,size:11}}, grid:{color:CC.gridColor} },
+    y:{ ticks:{color:CC.tickColor,font:{family:CC.font,size:11}}, grid:{color:CC.gridColor} }
+  };
+
+  // ── HOUR CHART — sorted from first QSO hour, up to 24h window
+  const hourMap = {};
+  qsos.forEach(q=>{ hourMap[q.hh]=(hourMap[q.hh]||0)+1; });
+
+  // Find absolute minute of first and last QSO (across day boundary)
+  // Each QSO has .hh and .dd (day). Use relative ordering from EDI date.
+  const firstQ = qsos.reduce((a,b)=>{
+    const am=a.yy*525600+a.mm*44640+a.dd*1440+a.hh*60+a.mi;
+    const bm=b.yy*525600+b.mm*44640+b.dd*1440+b.hh*60+b.mi;
+    return am<=bm?a:b;
+  }, qsos[0]);
+  const lastQ = qsos.reduce((a,b)=>{
+    const am=a.yy*525600+a.mm*44640+a.dd*1440+a.hh*60+a.mi;
+    const bm=b.yy*525600+b.mm*44640+b.dd*1440+b.hh*60+b.mi;
+    return am>=bm?a:b;
+  }, qsos[0]);
+
+  const startHour = firstQ.hh;
+  // Total contest span in hours (ceil to next full hour after last QSO)
+  const startAbs = firstQ.yy*525600+firstQ.mm*44640+firstQ.dd*1440+firstQ.hh*60;
+  const endAbs   = lastQ.yy*525600+lastQ.mm*44640+lastQ.dd*1440+lastQ.hh*60+lastQ.mi;
+  const spanH    = Math.min(24, Math.ceil((endAbs-startAbs)/60) + 1);
+
+  // Build ordered hour slots: startHour, startHour+1, ..., wrapping mod 24
+  const orderedH = Array.from({length:spanH},(_,i)=>(startHour+i)%24);
+
+  // Count QSOs per absolute slot (need day info to distinguish e.g. 06:00 day1 vs 06:00 day2)
+  const hourMapFull = {};
+  qsos.forEach(q=>{
+    // slot = hours elapsed since contest start hour
+    const absMin = q.yy*525600+q.mm*44640+q.dd*1440+q.hh*60+q.mi;
+    const slotH  = Math.floor((absMin - startAbs)/60);
+    if(slotH>=0 && slotH<24) hourMapFull[slotH]=(hourMapFull[slotH]||0)+1;
+  });
+
+  // Labels: show clock time, mark day boundary with +1d
+  const startDate = {dd:firstQ.dd, mm:firstQ.mm};
+  const hourLabels = orderedH.map((h,i)=>{
+    const crossed = (startHour+i)>=24;
+    return h+':00'+(crossed&&i>0&&(startHour+i)%24===0?'*':'');
+  });
+  // Simpler label: just HH:00, but add day marker when clock wraps past midnight
+  const hourLabels2 = Array.from({length:spanH},(_,i)=>{
+    const clockH = (startHour+i)%24;
+    const isNextDay = (startHour+i)>=24;
+    return (isNextDay && clockH===0) ? '00:00↑' : String(clockH).padStart(2,'0')+':00';
+  });
+
+  charts.hour = new Chart(document.getElementById('hourChart'), {
+    type:'bar',
+    data:{ labels: hourLabels2,
+      datasets:[{ label:'QSO', data: Array.from({length:spanH},(_,i)=>hourMapFull[i]||0),
+        backgroundColor:'rgba(88,166,255,0.7)', borderRadius:3, borderSkipped:false }]},
+    options:{ responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{display:false}}, scales:{ ...scalesBase,
+        x:{ ...scalesBase.x, ticks:{...scalesBase.x.ticks, autoSkip:false, maxRotation:0,
+          callback:(v,i)=>i%3===0?hourLabels2[i]:'' }},
+        y:{ ...scalesBase.y, ticks:{...scalesBase.y.ticks, stepSize:1}}}}
+  });
+
+  // ── DIST CHART
+  const bins = [0,100,200,300,400,500,600,700,800,900,1000];
+  const binC = new Array(bins.length-1).fill(0);
+  valid.forEach(q=>{ const i=bins.findIndex((b,j)=>q.dist>=b&&q.dist<bins[j+1]); if(i>=0)binC[i]++; });
+  charts.dist = new Chart(document.getElementById('distChart'), {
+    type:'bar',
+    data:{ labels:t('distLegend'),
+      datasets:[{ label:'QSO', data:binC,
+        backgroundColor:'rgba(63,185,80,0.65)', borderRadius:3, borderSkipped:false }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}}, scales:scalesBase }
+  });
+
+  // ── MODE CHART
+  const modeMap = {};
+  qsos.forEach(q=>{ const n=modeName(q.mode); modeMap[n]=(modeMap[n]||0)+1; });
+  const mKeys = Object.keys(modeMap);
+  const mColors = {'SSB':'rgba(88,166,255,0.8)','CW':'rgba(63,185,80,0.8)','FM':'rgba(240,136,62,0.8)'};
+  document.getElementById('modeLegend').innerHTML = mKeys.map(k=>
+    `<div class="leg-item"><span class="leg-dot" style="background:${mColors[k]||'#888'}"></span>${k} — ${modeMap[k]} ${t('modeLegendSuffix')}</div>`
+  ).join('');
+  charts.mode = new Chart(document.getElementById('modeChart'), {
+    type:'doughnut',
+    data:{ labels:mKeys, datasets:[{ data:mKeys.map(k=>modeMap[k]),
+      backgroundColor:mKeys.map(k=>mColors[k]||'#888'), borderWidth:0 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.parsed+' QSO'}}},
+      cutout:'60%' }
+  });
+
+  // ── COMPASS (init after #app shown so clientWidth is valid)
+  const cWrap = document.getElementById('compassWrap');
+  const cc = document.getElementById('compassCanvas');
+  const _compassMaxDist = Math.max(850, ...valid.map(q=>q.dist));
+  const withAz = valid.filter(q=>q.az!==null);
+
+  function initCompass() {
+    const _raw = cWrap.clientWidth - 20;
+    const sz = Math.max(_raw > 0 ? _raw : 400, 220);
+    cc.width = sz; cc.height = sz;
+    const cx = sz/2, cy = sz/2, maxR = sz/2 - 44;
+    const maxDist = _compassMaxDist;
+    const ctx = cc.getContext('2d');
+
+  function drawCompass(hov) {
+    ctx.clearRect(0,0,sz,sz);
+    // rings
+    [200,400,600,800].forEach(d => {
+      if (d > maxDist) return;
+      const r = (d/maxDist)*maxR;
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=0.5; ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='10px Space Mono, monospace';
+      ctx.textAlign='center'; ctx.fillText(d+' km', cx, cy-r-3);
+    });
+    // spokes
+    for(let a=0;a<360;a+=30){
+      const rad=(a-90)*Math.PI/180;
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+Math.cos(rad)*maxR, cy+Math.sin(rad)*maxR);
+      ctx.strokeStyle=a%90===0?'rgba(255,255,255,0.12)':'rgba(255,255,255,0.05)';
+      ctx.lineWidth=0.5; ctx.stroke();
+    }
+    // labels
+    ['N','NE','E','SE','S','SW','W','NW'].forEach((l,i)=>{
+      const a=i*45, rad=(a-90)*Math.PI/180, r=maxR+24;
+      ctx.fillStyle=a%90===0?'rgba(230,237,243,0.8)':'rgba(125,133,144,0.7)';
+      ctx.font=a%90===0?'bold 12px DM Sans,sans-serif':'11px DM Sans,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(l, cx+Math.cos(rad)*r, cy+Math.sin(rad)*r);
+    });
+    // points
+    withAz.forEach((q,i)=>{
+      const rad=(q.az-90)*Math.PI/180;
+      const r=(q.dist/maxDist)*maxR;
+      const x=cx+Math.cos(rad)*r, y=cy+Math.sin(rad)*r;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y);
+      const base = q.mode===1?'88,166,255': q.mode===2?'63,185,80':'240,136,62';
+      ctx.strokeStyle=`rgba(${base},0.18)`; ctx.lineWidth=1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(x,y,hov===i?7:4,0,Math.PI*2);
+      ctx.fillStyle=hov===i?`rgba(${base},1)`:`rgba(${base},0.75)`; ctx.fill();
+      if(hov===i){ ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.5; ctx.stroke(); }
+    });
+    ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2);
+    ctx.fillStyle='rgba(230,237,243,0.9)'; ctx.fill();
+  }
+  drawCompass(-1);
+  if(cc._compassCleanup) cc._compassCleanup();
+  const _ccMM = e=>{
+    const rect=cc.getBoundingClientRect(), mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    let found=-1, minD=12;
+    withAz.forEach((q,i)=>{
+      const rad=(q.az-90)*Math.PI/180, r=(q.dist/maxDist)*maxR;
+      const x=cx+Math.cos(rad)*r, y=cy+Math.sin(rad)*r;
+      const d=Math.hypot(mx-x,my-y);
+      if(d<minD){minD=d;found=i;}
+    });
+    drawCompass(found);
+    const tip=document.getElementById('compassTip');
+    if(found>=0){const q=withAz[found]; tip.textContent=`${q.call} · ${q.wwl} · az ${q.az}° · ${q.dist} km · ${modeName(q.mode)}`;}
+    else tip.textContent='';
+  };
+  const _ccML = ()=>{drawCompass(-1);document.getElementById('compassTip').textContent='';};
+  cc.addEventListener('mousemove', _ccMM);
+  cc.addEventListener('mouseleave', _ccML);
+  cc._compassCleanup = ()=>{ cc.removeEventListener('mousemove',_ccMM); cc.removeEventListener('mouseleave',_ccML); };
+  } // end initCompass()
+
+  // ── COUNTRY BARS
+  const cmap = {};
+  valid.forEach(q=>{ const c=getCountry(q.call); cmap[c]=(cmap[c]||0)+1; });
+  const cSorted = Object.entries(cmap).sort((a,b)=>b[1]-a[1]);
+  const maxC = cSorted[0]?.[1]||1;
+  const cColors = ['#58a6ff','#3fb950','#f0883e','#ff7b72','#a371f7','#39d353','#ffa657','#79c0ff'];
+  document.getElementById('countryBars').innerHTML = cSorted.map(([c,n],i)=>
+    `<div class="bar-row">
+      <div class="bar-lbl">${escapeHTML(c)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/maxC*100)}%;background:${cColors[i%cColors.length]}"></div></div>
+      <div class="bar-val">${n}</div>
+    </div>`
+  ).join('');
+
+  // ── AZ SCATTER
+  const modeColors = {1:'rgba(88,166,255,0.8)',2:'rgba(63,185,80,0.8)',3:'rgba(240,136,62,0.8)'};
+  const modeGroups = {};
+  withAz.forEach(q=>{
+    if(!modeGroups[q.mode]) modeGroups[q.mode]=[];
+    modeGroups[q.mode].push({x:q.az,y:q.dist,call:q.call,loc:q.wwl});
+  });
+  charts.az = new Chart(document.getElementById('azChart'), {
+    type:'scatter',
+    data:{ datasets: Object.entries(modeGroups).map(([m,pts])=>({
+      label:modeName(parseInt(m)), data:pts,
+      backgroundColor:modeColors[parseInt(m)]||'#888',
+      pointRadius:5, pointHoverRadius:7,
+      pointStyle:parseInt(m)===2?'triangle':'circle',
+    }))},
+    options:{ responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ display:true, labels:{color:'#7d8590',font:{family:'DM Sans',size:12}}},
+        tooltip:{callbacks:{label:d=>`${d.raw.call} · ${d.raw.loc} · az ${Math.round(d.raw.x)}° · ${d.raw.y} km`}}},
+      scales:{ x:{ ...scalesBase.x, min:0, max:360, title:{display:true,text:t('azX'),color:'#7d8590'},
+        ticks:{...scalesBase.x.ticks, stepSize:45, callback:v=>(['N','NE','E','SE','S','SW','W','NW','N'][v/45]||v+'°')}},
+        y:{ ...scalesBase.y, min:0, title:{display:true,text:t('azY'),color:'#7d8590'}}}}
+  });
+
+  // ── TABLES
+  const thRow = `<tr>${[t('tblNum'),t('tblCall'),t('tblLoc'),t('tblDist'),t('tblMode'),t('tblTime'),t('tblDate')].map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  document.getElementById('topHead').innerHTML = thRow;
+  document.getElementById('allHead').innerHTML = thRow;
+  const sorted = [...valid].sort((a,b)=>b.dist-a.dist);
+  const mkRow = (q,i) => `<tr>
+    <td style="color:var(--muted)">${i+1}</td>
+    <td style="color:var(--accent)">${escapeHTML(q.call)}</td>
+    <td>${escapeHTML(q.wwl)}</td>
+    <td style="color:var(--accent2)">${q.dist} km</td>
+    <td><span class="badge ${modeClass(q.mode)}">${modeName(q.mode)}</span></td>
+    <td>${q.timeStr}</td>
+    <td style="color:var(--muted)">${q.dateStr}</td>
+  </tr>`;
+  document.getElementById('topBody').innerHTML = sorted.slice(0,15).map(mkRow).join('');
+  const allSorted = [...qsos].sort((a,b)=>{
+    const da=a.yy*10000+a.mm*100+a.dd, db=b.yy*10000+b.mm*100+b.dd;
+    return da!==db?da-db:a.hh*60+a.mi-(b.hh*60+b.mi);
+  });
+  document.getElementById('allBody').innerHTML = allSorted.map(mkRow).join('');
+
+  // Show app FIRST so clientWidth is available for compass
+  document.getElementById('dropzone').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('hdrMeta').textContent = `${header['pcall']||''} · ${header['pband']||''} · ${header['tdate']||''}`;
+
+  // Init compass now that layout is visible and clientWidth is real
+  requestAnimationFrame(() => { initCompass(); initMap(valid, header['pwwlo'], header['pcall']); });
+}
+
+// ═══════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════
+function handleFile(file) {
+  if (!file) return;
+  const errBox = document.getElementById('errBox');
+  errBox.innerHTML = '';
+  if (!file.name.toLowerCase().endsWith('.edi')) {
+    errBox.innerHTML = `<div class="err-toast">⚠️ ${t('errEdi')}</div>`;
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = parseEDI(e.target.result);
+      if (!data.qsos.length) throw new Error(t('errNoQso'));
+      render(data);
+    } catch(err) {
+      errBox.innerHTML = `<div class="err-toast">⚠️ ${t('errRead')}: ${err.message}</div>`;
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function resetApp() {
+  _lastRenderData = null;
+  destroyCharts();
+  _mapQsosData = []; _mapHomeCall = ''; _workedBounds = null;
+  const svg = document.getElementById('mapSvg');
+  if(svg) { const dl=svg.querySelector('#dataLayer'); if(dl) svg.removeChild(dl); const bl=svg.querySelector('#baseLayer'); if(bl) svg.removeChild(bl); }
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('dropzone').style.display = 'flex';
+  document.getElementById('hdrMeta').textContent = '';
+  document.getElementById('fileInput').value = '';
+}
+
+const EU_SVG_PATHS = [{"name":"NOR","d":"M 718.4,123.8 690.0,142.8 676.6,147.0 683.6,113.8 662.2,94.5 636.4,111.0 628.1,145.8 612.2,166.3 594.4,155.1 572.6,157.4 554.1,132.7 544.1,145.1 533.8,147.0 531.3,177.3 499.9,170.0 495.5,195.1 479.5,194.9 468.5,226.2 451.8,273.0 425.9,329.5 432.0,342.8 426.2,358.0 409.7,357.3 398.9,392.5 399.9,440.3 410.5,458.1 405.0,498.1 391.1,520.8 383.8,539.6 372.6,519.6 339.7,556.9 317.5,564.3 294.4,548.2 288.5,513.2 283.2,434.4 298.6,411.2 342.5,380.4 375.5,341.2 406.0,285.8 446.0,203.9 473.9,170.2 519.7,111.4 556.3,90.0 583.7,92.5 609.1,51.0 639.5,53.2 669.4,43.0 721.6,80.1 700.1,93.4 Z"},{"name":"FRA","d":"M 303.1,808.4 311.0,815.1 335.0,819.8 326.6,837.0 324.5,854.8 319.9,859.0 312.3,856.7 312.8,863.0 300.7,876.7 300.4,887.7 308.3,883.9 314.0,894.5 313.4,901.2 318.3,910.2 312.5,917.4 316.8,935.5 325.9,938.4 323.9,948.5 308.8,961.4 275.9,955.2 251.7,962.7 249.8,976.3 230.5,979.3 211.7,969.0 205.6,973.9 174.9,963.6 168.3,954.7 176.9,940.9 180.1,893.9 162.9,868.5 150.6,856.0 125.1,846.5 123.5,828.2 145.1,822.7 173.0,829.2 167.7,800.3 183.5,811.4 222.3,791.2 227.3,769.8 241.9,764.4 244.3,773.7 252.1,774.1 259.8,784.7 271.4,796.9 280.0,794.9 294.6,806.7 298.3,808.9 Z M 345.8,972.8 356.5,964.1 359.3,983.6 353.8,1000.8 346.3,996.3 342.4,981.2 Z"},{"name":"SWE","d":"M 383.8,539.6 391.1,520.8 405.0,498.1 410.5,458.1 399.9,440.3 398.9,392.5 409.7,357.3 426.2,358.0 432.0,342.8 425.9,329.5 451.8,273.0 468.5,226.2 479.5,194.9 495.5,195.1 499.9,170.0 531.3,177.3 533.8,147.0 544.1,145.1 566.3,167.7 592.3,198.4 592.8,264.6 598.4,280.6 569.7,292.2 553.6,320.1 556.1,344.0 529.7,374.6 497.5,406.4 485.3,456.5 497.2,480.7 513.1,499.4 497.8,536.4 480.5,543.9 474.1,596.6 464.7,624.9 444.5,622.1 435.0,645.5 415.7,646.9 410.4,618.9 396.5,584.2 Z"},{"name":"BLR","d":"M 669.6,623.0 687.2,630.5 689.5,637.8 698.3,634.3 714.6,641.4 716.2,655.1 712.6,662.9 723.1,681.7 729.8,686.9 728.9,692.0 740.1,697.0 744.9,704.4 738.4,710.5 725.0,709.5 721.7,712.1 725.7,721.3 729.8,738.8 715.4,740.4 710.3,746.3 709.3,759.9 702.6,757.3 687.6,758.6 683.2,752.3 677.0,757.0 670.7,753.1 657.6,752.5 639.0,746.1 622.1,744.0 609.2,744.6 600.1,751.9 592.1,752.9 591.8,740.9 586.7,728.3 596.6,722.7 596.8,711.7 592.1,701.1 591.4,688.7 607.5,688.9 625.6,678.1 629.5,661.9 643.1,652.6 641.6,639.5 651.7,634.5 Z"},{"name":"UKR","d":"M 729.8,738.8 736.0,739.9 740.2,733.7 745.3,735.1 762.5,732.5 773.2,747.8 769.0,753.3 770.4,761.5 783.7,762.8 789.7,774.3 789.3,779.5 810.4,788.7 823.2,784.5 833.5,796.7 843.2,796.5 867.8,804.8 868.0,812.4 861.2,825.7 865.0,839.6 862.3,847.9 846.2,849.7 837.6,856.6 837.1,867.5 823.7,869.5 812.6,877.4 797.0,878.7 782.7,887.7 783.5,900.5 781.0,899.8 778.9,895.1 773.5,894.1 761.6,889.0 757.3,894.9 755.0,892.3 729.1,886.2 727.9,877.2 712.5,880.2 706.3,893.5 693.4,911.1 685.9,907.0 678.0,910.9 670.6,906.5 674.8,903.9 677.7,895.7 682.3,888.0 681.1,883.7 684.5,881.8 686.2,885.1 696.0,885.8 700.4,884.0 697.3,881.6 698.5,878.0 692.6,871.8 690.2,861.5 684.2,857.5 685.4,849.1 677.9,842.4 671.0,841.5 658.7,833.7 647.6,836.1 643.7,839.8 636.6,839.8 632.5,845.7 620.2,848.1 614.5,851.9 606.7,845.8 596.0,845.7 585.7,843.0 578.5,848.3 577.4,841.6 568.1,834.8 571.4,824.6 576.0,818.0 579.6,819.5 575.3,808.0 590.5,786.5 598.7,783.5 600.5,776.1 592.1,752.9 600.1,751.9 609.2,744.6 622.1,744.0 639.0,746.1 657.6,752.5 670.7,753.1 677.0,757.0 683.2,752.3 687.6,758.6 702.6,757.3 709.3,759.9 710.3,746.3 715.4,740.4 Z"},{"name":"POL","d":"M 591.4,688.7 592.1,701.1 596.8,711.7 596.6,722.7 586.7,728.3 591.8,740.9 592.1,752.9 600.5,776.1 598.7,783.5 590.5,786.5 575.3,808.0 579.6,819.5 576.0,818.0 560.2,808.2 548.2,811.8 540.3,809.2 530.4,814.7 522.0,805.6 515.2,809.1 514.2,807.5 506.6,794.8 494.2,793.3 492.6,785.1 481.1,782.2 478.7,788.9 469.6,783.6 470.6,776.3 458.2,774.0 450.3,765.5 443.5,748.4 444.8,739.1 440.6,724.5 434.6,714.7 439.2,707.3 435.4,693.1 446.7,684.7 472.7,671.5 493.7,661.8 510.4,666.7 511.6,673.7 527.7,674.0 548.2,677.3 578.9,676.8 587.4,679.9 Z"},{"name":"AUT","d":"M 483.0,842.3 481.7,852.4 472.4,852.5 475.6,857.9 470.0,873.6 466.9,877.8 452.3,878.3 443.9,883.8 430.1,882.0 406.3,875.7 402.5,867.2 386.1,871.5 384.2,876.1 374.0,872.6 365.5,872.0 358.0,867.5 360.5,861.5 359.9,857.2 364.9,855.8 373.4,862.6 375.7,856.1 390.4,857.2 402.4,852.7 410.3,853.5 415.6,858.5 417.1,854.4 414.7,838.1 420.7,835.0 426.6,823.3 439.0,831.5 448.4,821.1 454.3,819.2 467.2,826.9 475.0,825.7 482.7,830.4 481.3,833.6 Z"},{"name":"HUN","d":"M 568.1,834.8 577.4,841.6 578.5,848.3 568.3,853.5 560.5,870.2 550.4,886.7 537.0,891.2 526.6,890.1 513.8,896.4 507.6,900.0 493.9,895.4 481.4,885.1 476.1,882.1 472.9,873.9 470.0,873.6 475.6,857.9 472.4,852.5 481.7,852.4 483.0,842.3 491.5,848.7 497.6,851.4 511.6,848.3 512.9,843.3 519.6,842.6 527.7,838.7 529.5,840.3 537.3,837.2 541.3,831.3 546.7,829.7 564.5,837.4 Z"},{"name":"MDA","d":"M 643.7,839.8 647.6,836.1 658.7,833.7 671.0,841.5 677.9,842.4 685.4,849.1 684.2,857.5 690.2,861.5 692.6,871.8 698.5,878.0 697.3,881.6 700.4,884.0 696.0,885.8 686.2,885.1 684.5,881.8 681.1,883.7 682.3,888.0 677.7,895.7 674.8,903.9 670.6,906.5 667.6,895.6 669.4,885.3 668.8,874.7 659.2,860.1 653.9,849.7 648.7,842.3 Z"},{"name":"ROU","d":"M 670.6,906.5 678.0,910.9 685.9,907.0 693.4,911.1 693.8,917.2 685.7,922.3 680.6,920.0 676.0,948.2 666.2,945.7 654.1,937.3 634.4,942.7 626.2,948.6 601.7,947.4 588.9,943.8 582.4,945.5 577.6,935.9 574.6,931.9 578.5,927.9 574.3,925.0 569.1,930.3 559.4,923.5 558.1,913.7 547.9,908.2 546.1,900.6 537.0,891.2 550.4,886.7 560.5,870.2 568.3,853.5 578.5,848.3 585.7,843.0 596.0,845.7 606.7,845.8 614.5,851.9 620.2,848.1 632.5,845.7 636.6,839.8 643.7,839.8 648.7,842.3 653.9,849.7 659.2,860.1 668.8,874.7 669.4,885.3 667.6,895.6 Z"},{"name":"LTU","d":"M 641.6,639.5 643.1,652.6 629.5,661.9 625.6,678.1 607.5,688.9 591.4,688.7 587.4,679.9 578.9,676.8 577.5,669.5 579.3,661.6 571.9,657.0 554.5,651.9 550.9,627.1 570.0,617.9 598.0,619.9 614.3,616.9 616.7,623.1 625.6,625.0 Z"},{"name":"LVA","d":"M 654.8,583.2 662.8,590.3 664.3,605.2 669.6,623.0 651.7,634.5 641.6,639.5 625.6,625.0 616.7,623.1 614.3,616.9 598.0,619.9 570.0,617.9 550.9,627.1 551.5,604.4 559.7,585.2 575.4,574.5 588.7,597.7 602.0,597.0 605.2,573.3 619.4,567.7 626.7,571.6 641.0,583.2 Z"},{"name":"EST","d":"M 666.4,519.4 668.9,525.1 657.0,543.8 662.0,573.4 654.8,583.2 641.0,583.2 626.7,571.6 619.4,567.7 605.2,573.3 607.1,554.7 601.0,558.7 590.5,547.4 589.0,528.8 610.1,519.8 631.1,515.0 649.1,520.4 Z"},{"name":"DEU","d":"M 435.4,693.1 439.2,707.3 434.6,714.7 440.6,724.5 444.8,739.1 443.5,748.4 450.3,765.5 442.9,768.3 438.5,765.2 434.3,770.3 422.3,775.4 416.1,781.9 404.0,787.6 406.9,795.4 408.7,806.2 417.2,812.4 426.6,823.3 420.7,835.0 414.7,838.1 417.1,854.4 415.6,858.5 410.3,853.5 402.4,852.7 390.4,857.2 375.7,856.1 373.4,862.6 364.9,855.8 359.9,857.2 342.1,849.6 338.6,854.9 324.5,854.8 326.6,837.0 335.0,819.8 311.0,815.1 303.1,808.4 304.1,797.1 300.7,791.2 302.6,773.5 299.8,745.6 309.8,745.6 314.0,735.4 318.2,710.2 315.1,700.8 318.4,694.8 332.3,693.3 335.4,699.5 346.7,685.6 342.9,674.9 342.1,658.5 354.7,662.4 365.4,657.9 365.6,669.1 382.5,675.8 382.3,685.9 399.3,680.6 408.7,672.8 427.4,684.0 Z"},{"name":"BGR","d":"M 577.6,935.9 582.4,945.5 588.9,943.8 601.7,947.4 626.2,948.6 634.4,942.7 654.1,937.3 666.2,945.7 676.0,948.2 667.3,957.7 661.3,973.9 666.6,986.8 652.3,983.8 635.3,990.9 635.1,1001.9 620.0,1004.0 608.2,996.3 594.9,1002.4 582.5,1001.8 581.3,987.0 573.0,979.8 575.8,976.6 574.0,973.9 576.8,966.7 583.1,959.5 575.0,949.6 573.5,941.2 Z"},{"name":"GRC","d":"M 638.2,1130.1 636.1,1136.2 612.1,1137.9 612.2,1134.5 591.9,1130.6 595.0,1121.9 604.1,1128.8 617.1,1127.6 629.5,1129.0 629.1,1132.6 Z M 582.5,1001.8 594.9,1002.4 608.2,996.3 620.0,1004.0 635.1,1001.9 635.3,990.9 643.4,996.8 638.2,1010.6 634.3,1013.1 624.1,1012.5 615.4,1010.4 595.3,1016.1 606.8,1028.4 598.3,1032.0 589.1,1032.0 580.3,1020.8 577.1,1025.6 580.9,1038.6 589.2,1048.7 582.9,1053.4 592.2,1063.2 600.4,1069.4 600.7,1081.3 585.2,1075.7 590.2,1086.5 579.6,1088.7 585.9,1107.1 574.9,1107.3 561.2,1098.3 554.9,1081.5 552.0,1067.5 545.5,1057.7 536.9,1045.4 535.9,1039.3 543.6,1028.7 544.6,1021.6 550.0,1018.5 550.3,1012.7 561.2,1010.7 567.6,1005.9 576.6,1006.4 579.4,1002.5 Z"},{"name":"ALB","d":"M 550.3,1012.7 550.0,1018.5 544.6,1021.6 543.6,1028.7 535.9,1039.3 533.0,1037.8 532.7,1033.0 523.4,1025.7 522.0,1015.3 523.4,1000.2 525.7,993.2 522.8,989.7 521.8,982.6 529.0,971.5 530.0,975.7 534.5,973.7 538.1,979.8 542.0,982.1 543.2,990.2 541.1,997.8 543.4,1007.3 Z"},{"name":"HRV","d":"M 476.1,882.1 481.4,885.1 493.9,895.4 507.6,900.0 513.8,896.4 517.9,905.7 523.2,912.5 516.8,921.3 509.2,916.1 497.7,916.4 483.4,912.5 475.6,913.0 472.0,917.9 466.0,912.5 462.5,922.3 470.6,933.2 474.3,940.4 481.9,949.1 488.3,954.2 494.6,963.7 509.3,972.3 507.5,976.2 491.8,967.8 482.2,959.6 466.9,952.8 452.9,935.8 456.3,934.0 448.7,924.2 448.4,916.2 437.6,912.5 432.5,922.7 427.6,914.8 428.0,906.6 428.6,906.2 440.2,907.0 443.3,903.0 448.9,906.9 455.5,907.3 455.4,900.7 461.2,898.2 462.8,888.5 Z"},{"name":"CHE","d":"M 359.9,857.2 360.5,861.5 358.0,867.5 365.5,872.0 374.0,872.6 372.7,882.6 365.4,886.7 353.0,883.6 349.4,893.4 341.5,894.1 338.6,890.3 329.3,898.4 321.2,899.6 314.0,894.5 308.3,883.9 300.4,887.7 300.7,876.7 312.8,863.0 312.3,856.7 319.9,859.0 324.5,854.8 338.6,854.9 342.1,849.6 Z"},{"name":"LUX","d":"M 300.7,791.2 304.1,797.1 303.1,808.4 298.3,808.9 294.6,806.7 296.4,792.2 Z"},{"name":"BEL","d":"M 302.6,773.5 300.7,791.2 296.4,792.2 294.6,806.7 280.0,794.9 271.4,796.9 259.8,784.7 252.1,774.1 244.3,773.7 241.9,764.4 255.2,759.1 267.5,761.3 282.9,755.7 293.5,767.3 Z"},{"name":"NLD","d":"M 315.1,700.8 318.2,710.2 314.0,735.4 309.8,745.6 299.8,745.6 302.6,773.5 293.5,767.3 282.9,755.7 267.5,761.3 255.2,759.1 263.8,751.8 278.5,711.7 301.3,700.0 Z"},{"name":"PRT","d":"M 49.4,989.6 55.5,983.9 62.3,980.7 66.5,991.6 76.3,991.6 79.1,988.8 88.8,989.6 93.5,1000.8 85.8,1006.8 85.6,1023.9 82.9,1027.1 82.2,1037.4 75.0,1039.2 81.7,1052.1 77.1,1066.1 82.8,1072.4 80.6,1078.2 74.4,1086.1 75.8,1093.0 69.0,1098.4 60.3,1095.5 51.7,1097.8 54.2,1081.4 52.7,1068.4 45.2,1066.4 41.2,1058.4 42.5,1044.3 49.2,1036.5 50.4,1027.7 53.9,1014.5 53.5,1005.2 50.1,997.2 Z"},{"name":"ESP","d":"M 75.8,1093.0 74.4,1086.1 80.6,1078.2 82.8,1072.4 77.1,1066.1 81.7,1052.1 75.0,1039.2 82.2,1037.4 82.9,1027.1 85.6,1023.9 85.8,1006.8 93.5,1000.8 88.8,989.6 79.1,988.8 76.3,991.6 66.5,991.6 62.3,980.7 55.5,983.9 49.4,989.6 50.3,973.6 43.4,963.8 67.0,947.2 87.4,951.4 109.8,951.2 127.5,955.2 141.3,954.0 168.3,954.7 174.9,963.6 205.6,973.9 211.7,969.0 230.5,979.3 249.8,976.3 250.7,989.4 234.9,1004.2 213.5,1008.9 212.0,1016.3 201.8,1028.4 195.3,1046.1 201.8,1058.4 192.2,1067.8 188.6,1081.6 176.0,1085.8 164.2,1101.8 143.1,1102.1 127.2,1101.8 116.7,1109.1 110.4,1116.9 102.2,1115.2 96.0,1108.2 91.3,1096.3 Z"},{"name":"IRL","d":"M 96.7,689.9 99.5,709.9 86.9,734.5 57.3,750.5 33.7,746.4 47.2,717.9 38.5,689.5 61.2,667.2 73.8,653.6 77.2,669.2 73.8,684.5 84.1,684.1 Z"},{"name":"ITA","d":"M 374.0,872.6 384.2,876.1 386.1,871.5 402.5,867.2 406.3,875.7 430.1,882.0 428.3,893.9 432.3,904.0 419.0,900.5 405.5,909.0 406.4,920.7 404.3,927.4 409.8,939.3 425.5,950.9 433.9,969.8 452.4,988.0 465.4,987.9 469.5,992.8 464.8,997.2 479.8,1005.3 492.0,1011.9 506.3,1023.4 508.0,1027.5 504.9,1035.3 495.7,1025.1 481.1,1021.5 474.2,1035.6 486.2,1043.6 484.2,1054.8 477.2,1056.1 468.4,1074.3 461.4,1076.0 461.5,1069.5 464.9,1058.1 468.5,1053.5 462.0,1041.0 456.9,1030.1 450.0,1027.4 445.1,1017.9 434.3,1013.9 427.1,1005.1 414.8,1003.6 401.8,993.6 386.5,979.0 375.2,966.0 370.0,943.2 361.7,940.6 348.2,932.9 340.5,936.0 330.8,946.8 323.9,948.5 325.9,938.4 316.8,935.5 312.5,917.4 318.3,910.2 313.4,901.2 314.0,894.5 321.2,899.6 329.3,898.4 338.6,890.3 341.5,894.1 349.4,893.4 353.0,883.6 365.4,886.7 372.7,882.6 Z M 446.0,1071.0 458.7,1069.2 452.7,1085.8 455.2,1092.3 451.7,1103.0 438.9,1095.1 430.4,1092.9 407.2,1082.2 409.5,1071.4 429.0,1073.3 Z M 345.2,1011.5 353.5,1004.6 363.5,1020.2 361.1,1049.0 353.6,1047.6 346.8,1054.7 340.5,1049.1 339.8,1022.9 336.0,1010.3 Z"},{"name":"DNK","d":"M 365.4,657.9 354.7,662.4 342.1,658.5 335.3,642.3 334.9,611.8 337.6,603.6 342.4,594.5 357.1,592.6 362.9,584.1 376.3,575.3 375.8,591.2 370.9,601.2 372.8,609.7 381.9,614.3 377.8,625.6 372.8,622.4 360.8,643.7 Z M 406.2,624.7 411.5,639.6 401.5,663.2 384.1,646.8 381.7,634.6 Z"},{"name":"GBR","d":"M 96.7,689.9 84.1,684.1 73.8,684.5 77.2,669.2 73.8,653.6 87.8,652.4 105.6,670.3 Z M 148.4,702.9 148.5,702.9 150.9,686.6 139.7,669.0 139.5,668.6 119.3,663.5 115.3,655.7 121.4,642.6 115.8,634.5 106.9,648.4 105.9,619.8 97.5,604.4 103.5,572.5 116.5,546.8 129.8,549.3 149.9,546.7 132.1,580.8 149.1,576.5 167.3,576.7 163.0,601.8 148.0,628.8 165.2,630.7 166.5,633.9 181.4,668.3 192.8,672.9 203.1,705.2 207.8,716.1 228.1,721.4 226.0,738.9 217.5,746.8 224.2,760.6 209.2,774.5 186.9,774.3 158.5,781.5 150.7,776.4 139.7,788.6 124.3,785.6 112.6,795.6 103.7,790.4 128.1,762.8 143.1,757.0 143.0,757.0 116.9,752.5 112.2,741.8 129.6,733.4 120.5,718.6 123.6,700.4 Z"},{"name":"SVN","d":"M 430.1,882.0 443.9,883.8 452.3,878.3 466.9,877.8 470.0,873.6 472.9,873.9 476.1,882.1 462.8,888.5 461.2,898.2 455.4,900.7 455.5,907.3 448.9,906.9 443.3,903.0 440.2,907.0 428.6,906.2 432.3,904.0 428.3,893.9 Z"},{"name":"FIN","d":"M 676.6,147.0 674.1,179.2 699.6,208.9 684.2,241.5 703.6,288.9 692.4,323.1 707.4,352.0 700.6,376.7 725.3,402.1 719.0,420.5 703.5,441.1 667.9,485.2 637.6,487.9 608.3,500.2 581.2,507.2 571.5,488.9 555.4,477.8 559.1,443.7 551.0,411.5 559.0,390.2 574.1,366.7 612.2,325.0 623.3,316.7 621.6,299.8 598.4,280.6 592.8,264.6 592.3,198.4 566.3,167.7 544.1,145.1 554.1,132.7 572.6,157.4 594.4,155.1 612.2,166.3 628.1,145.8 636.4,111.0 662.2,94.5 683.6,113.8 Z"},{"name":"SVK","d":"M 576.0,818.0 571.4,824.6 568.1,834.8 564.5,837.4 546.7,829.7 541.3,831.3 537.3,837.2 529.5,840.3 527.7,838.7 519.6,842.6 512.9,843.3 511.6,848.3 497.6,851.4 491.5,848.7 483.0,842.3 481.3,833.6 482.7,830.4 485.0,824.8 492.4,825.3 498.1,822.7 498.5,820.3 501.8,819.1 502.9,813.3 506.7,812.2 509.3,807.6 514.2,807.5 515.2,809.1 522.0,805.6 530.4,814.7 540.3,809.2 548.2,811.8 560.2,808.2 Z"},{"name":"CZE","d":"M 450.3,765.5 458.2,774.0 470.6,776.3 469.6,783.6 478.7,788.9 481.1,782.2 492.6,785.1 494.2,793.3 506.6,794.8 514.2,807.5 509.3,807.6 506.7,812.2 502.9,813.3 501.8,819.1 498.5,820.3 498.1,822.7 492.4,825.3 485.0,824.8 482.7,830.4 475.0,825.7 467.2,826.9 454.3,819.2 448.4,821.1 439.0,831.5 426.6,823.3 417.2,812.4 408.7,806.2 406.9,795.4 404.0,787.6 416.1,781.9 422.3,775.4 434.3,770.3 438.5,765.2 442.9,768.3 Z"},{"name":"BIH","d":"M 509.3,972.3 494.6,963.7 488.3,954.2 481.9,949.1 474.3,940.4 470.6,933.2 462.5,922.3 466.0,912.5 472.0,917.9 475.6,913.0 483.4,912.5 497.7,916.4 509.2,916.1 516.8,921.3 522.8,921.2 518.6,931.5 526.7,940.5 524.2,951.4 520.3,952.4 517.2,954.5 511.8,959.8 Z"},{"name":"MKD","d":"M 573.0,979.8 581.3,987.0 582.5,1001.8 579.4,1002.5 576.6,1006.4 567.6,1005.9 561.2,1010.7 550.3,1012.7 543.4,1007.3 541.1,997.8 543.2,990.2 545.3,990.4 546.1,985.8 555.9,982.3 559.6,981.5 565.3,980.1 Z"},{"name":"SRB","d":"M 513.8,896.4 526.6,890.1 537.0,891.2 546.1,900.6 547.9,908.2 558.1,913.7 559.4,923.5 569.1,930.3 574.3,925.0 578.5,927.9 574.6,931.9 577.6,935.9 573.5,941.2 575.0,949.6 583.1,959.5 576.8,966.7 574.0,973.9 575.8,976.6 573.0,979.8 565.3,980.1 559.6,981.5 559.1,979.8 561.1,977.1 562.9,971.6 560.6,971.7 557.3,967.5 554.6,966.4 552.4,962.8 549.3,961.4 546.9,958.1 543.9,959.4 541.6,967.0 537.7,968.6 539.0,966.7 532.6,961.9 527.2,959.5 524.8,956.3 520.3,952.4 524.2,951.4 526.7,940.5 518.6,931.5 522.8,921.2 516.8,921.3 523.2,912.5 517.9,905.7 Z"},{"name":"MNE","d":"M 534.5,973.7 530.0,975.7 529.0,971.5 521.8,982.6 522.8,989.7 519.4,988.0 514.7,980.7 507.5,976.2 509.3,972.3 511.8,959.8 517.2,954.5 520.3,952.4 524.8,956.3 527.2,959.5 532.6,961.9 539.0,966.7 537.7,968.6 Z"}];
+
+// ═══════════════════════════════════════
+//  SVG LOCATOR MAP — Mercator, zoomable
+// ═══════════════════════════════════════
+
+// Mercator projection constants
+const MAP_LON0=-12, MAP_LON1=42;
+const MAP_W=900, MAP_H=1156;
+const MAP_PX_PER_RAD=954.929659;
+const MAP_MERC1=1.84273003; // mercY(LAT1=72)
+
+function mercY(lat){
+  const r=Math.PI/180*lat;
+  return Math.log(Math.tan(Math.PI/4+r/2));
+}
+function mX(lon){ return (lon-MAP_LON0)/(MAP_LON1-MAP_LON0)*MAP_W; }
+function mY(lat){ return (MAP_MERC1-mercY(lat))*MAP_PX_PER_RAD; }
+
+// ── Zoom/pan state
+let _vx=0,_vy=0,_vz=1;
+let _panStart=null;
+let _workedBounds=null;
+let _mapPanInited=false;
+
+function applyTransform(){
+  const g=document.getElementById('mapZoomGroup');
+  if(g) g.setAttribute('transform',`translate(${_vx.toFixed(2)},${_vy.toFixed(2)}) scale(${_vz.toFixed(4)})`);;
+}
+
+function _zoomAt(factor, svgX, svgY){
+  const newZ=Math.max(0.3,Math.min(60,_vz*factor));
+  const f=newZ/_vz;
+  _vx=svgX-(svgX-_vx)*f;
+  _vy=svgY-(svgY-_vy)*f;
+  _vz=newZ;
+  applyTransform();
+  updateGridOpacity();
+}
+
+function mapZoom(factor){
+  _zoomAt(factor, MAP_W/2, MAP_H_DISPLAY/2);
+}
+
+// Display height of SVG element (fixed 520px window into the 900×1156 space)
+const MAP_H_DISPLAY=520;
+
+function mapFitBounds(x0,y0,x1,y1,pad){
+  pad=pad||50;
+  const bw=x1-x0, bh=y1-y0;
+  const scaleX=(MAP_W-pad*2)/bw;
+  const scaleY=(MAP_H_DISPLAY-pad*2)/bh;
+  _vz=Math.min(scaleX,scaleY,30);
+  _vx=MAP_W/2-(x0+bw/2)*_vz;
+  _vy=MAP_H_DISPLAY/2-(y0+bh/2)*_vz;
+  applyTransform();
+  updateGridOpacity();
+}
+
+function mapFitWorked(){
+  if(_workedBounds) mapFitBounds(_workedBounds.x0,_workedBounds.y0,_workedBounds.x1,_workedBounds.y1,55);
+}
+function mapFitEurope(){
+  // Fit entire -12..42, 34..72 into display window
+  const x0=mX(-12),y0=mY(72),x1=mX(42),y1=mY(34);
+  mapFitBounds(x0,y0,x1,y1,10);
+}
+
+function updateGridOpacity(){
+  const zg=document.getElementById('mapZoomGroup');
+  if(!zg) return;
+  const grid=zg.querySelector('#gridLayer');
+  if(grid) grid.setAttribute('opacity',Math.min(0.5,Math.max(0.06,_vz*0.08)).toFixed(2));
+}
+
+function initMapPan(){
+  if(_mapPanInited) return;
+  _mapPanInited=true;
+  const svg=document.getElementById('mapSvg');
+
+  svg.addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    _panStart={x:e.clientX-_vx,y:e.clientY-_vy};
+    svg.classList.add('panning'); e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!_panStart) return;
+    _vx=e.clientX-_panStart.x; _vy=e.clientY-_panStart.y;
+    applyTransform();
+  });
+  window.addEventListener('mouseup',()=>{
+    _panStart=null; document.getElementById('mapSvg')?.classList.remove('panning');
+  });
+
+  // Touch pan
+  let _t0=null;
+  svg.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){_t0={x:e.touches[0].clientX-_vx,y:e.touches[0].clientY-_vy};e.preventDefault();}
+  },{passive:false});
+  svg.addEventListener('touchmove',e=>{
+    if(_t0&&e.touches.length===1){_vx=e.touches[0].clientX-_t0.x;_vy=e.touches[0].clientY-_t0.y;applyTransform();e.preventDefault();}
+  },{passive:false});
+  svg.addEventListener('touchend',()=>_t0=null);
+
+  // Wheel zoom — zoom to cursor
+  svg.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const rect=svg.getBoundingClientRect();
+    const svgX=(e.clientX-rect.left)/rect.width*MAP_W;
+    const svgY=(e.clientY-rect.top)/rect.height*MAP_H_DISPLAY;
+    _zoomAt(e.deltaY<0?1.2:0.833, svgX, svgY);
+  },{passive:false});
+}
+
+// ── Build static base map inside #mapZoomGroup
+function buildBaseSvg(){
+  const zg=document.getElementById('mapZoomGroup');
+  if(zg.querySelector('#baseLayer')) return;
+
+  // Sea background — large enough to cover any pan
+  const sea=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  sea.setAttribute('x','-3000'); sea.setAttribute('y','-3000');
+  sea.setAttribute('width','9000'); sea.setAttribute('height','9000');
+  sea.setAttribute('fill','#0d1a2a');
+  zg.appendChild(sea);
+
+  // Country fills from Natural Earth TopoJSON (gap-free)
+  const base=document.createElementNS('http://www.w3.org/2000/svg','g');
+  base.id='baseLayer';
+  const NS='http://www.w3.org/2000/svg';
+  EU_SVG_PATHS.forEach(({name,d})=>{
+    // Fill pass
+    const pf=document.createElementNS(NS,'path');
+    pf.setAttribute('d',d);
+    pf.setAttribute('fill','#1e2e1a');
+    pf.setAttribute('stroke','#1e2e1a');
+    pf.setAttribute('stroke-width','1.5');
+    pf.setAttribute('stroke-linejoin','round');
+    pf.setAttribute('fill-rule','nonzero');
+    base.appendChild(pf);
+  });
+  EU_SVG_PATHS.forEach(({name,d})=>{
+    // Border pass
+    const pb=document.createElementNS(NS,'path');
+    pb.setAttribute('d',d);
+    pb.setAttribute('fill','none');
+    pb.setAttribute('stroke','#2d4525');
+    pb.setAttribute('stroke-width','0.5');
+    pb.setAttribute('stroke-linejoin','round');
+    base.appendChild(pb);
+  });
+  zg.appendChild(base);
+
+  // Locator grid
+  const grid=document.createElementNS('http://www.w3.org/2000/svg','g');
+  grid.id='gridLayer'; grid.setAttribute('opacity','0.12');
+  for(let lon=-12;lon<=42;lon+=2){
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',mX(lon)); l.setAttribute('y1',mY(72));
+    l.setAttribute('x2',mX(lon)); l.setAttribute('y2',mY(34));
+    l.setAttribute('stroke','#4a6a4a'); l.setAttribute('stroke-width','0.5'); grid.appendChild(l);
+  }
+  for(let lat=34;lat<=72;lat+=1){
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',mX(-12)); l.setAttribute('y1',mY(lat));
+    l.setAttribute('x2',mX(42)); l.setAttribute('y2',mY(lat));
+    l.setAttribute('stroke','#4a6a4a'); l.setAttribute('stroke-width','0.5'); grid.appendChild(l);
+  }
+  zg.appendChild(grid);
+}
+
+// ── Locator field → SVG rect using Mercator
+function locSvgRect(wwl4){
+  const l=wwl4.toUpperCase();
+  const lonW=(l.charCodeAt(0)-65)*20-180+parseInt(l[2])*2;
+  const latS=(l.charCodeAt(1)-65)*10-90+parseInt(l[3]);
+  const x=mX(lonW), x2=mX(lonW+2);
+  const yTop=mY(latS+1), yBot=mY(latS);
+  return{x,y:yTop,w:x2-x,h:yBot-yTop,cx:(x+x2)/2,cy:(yTop+yBot)/2};
+}
+
+let _mapQsosData=[],_mapHomeLocStr='JN75FO',_mapHomeCall='',_mapColorMode='dist';
+
+function distColor(d){
+  if(d<100)return'#a8d8a8';if(d<200)return'#5dca82';if(d<300)return'#3fb950';
+  if(d<400)return'#58a6ff';if(d<500)return'#79c0ff';if(d<600)return'#f0883e';
+  if(d<700)return'#ffa657';return'#ff7b72';
+}
+function qsoCountColor(n,max){
+  const t=n/max;
+  if(t<0.15)return'#1c3a2a';if(t<0.30)return'#2ea043';if(t<0.50)return'#3fb950';
+  if(t<0.70)return'#58a6ff';if(t<0.85)return'#f0883e';return'#ff7b72';
+}
+function modeColor(ssb,cw){
+  if(ssb===0)return'#3fb950';if(cw===0)return'#58a6ff';return'#a371f7';
+}
+
+function setMapColor(mode){
+  _mapColorMode=mode;
+  document.querySelectorAll('.map-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btnColor'+mode.charAt(0).toUpperCase()+mode.slice(1)).classList.add('active');
+  renderMapData();
+}
+
+function renderMapData(){
+  const zg=document.getElementById('mapZoomGroup');
+  const old=zg.querySelector('#dataLayer'); if(old) zg.removeChild(old);
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.id='dataLayer';
+
+  const fields={};
+  _mapQsosData.forEach(q=>{
+    const f=(q.wwl||'').substring(0,4).toUpperCase();
+    if(f.length<4) return;
+    if(!fields[f]) fields[f]={qsos:[],dists:[],ssb:0,cw:0,fm:0};
+    fields[f].qsos.push(q); fields[f].dists.push(q.dist||0);
+    if(q.mode===1)fields[f].ssb++; else if(q.mode===2)fields[f].cw++; else fields[f].fm++;
+  });
+  const maxQso=Math.max(...Object.values(fields).map(f=>f.qsos.length),1);
+
+  let bx0=Infinity,by0=Infinity,bx1=-Infinity,by1=-Infinity;
+
+  const legend=document.getElementById('mapLegend');
+  if(_mapColorMode==='dist'){
+    legend.innerHTML=[['<100','#a8d8a8'],['100–200','#5dca82'],['200–300','#3fb950'],
+      ['300–400','#58a6ff'],['400–500','#79c0ff'],['500–600','#f0883e'],
+      ['600–700','#ffa657'],['>700','#ff7b72']
+    ].map(([l,c])=>`<span><i style="background:${c};opacity:.85;border-radius:2px"></i>${l} km</span>`).join('');
+  } else if(_mapColorMode==='qso'){
+    legend.innerHTML='<span style="color:var(--muted)">svetlejša = več QSO</span>';
+  } else {
+    legend.innerHTML=[['SSB','#58a6ff'],['CW','#3fb950'],['SSB+CW','#a371f7']]
+      .map(([l,c])=>`<span><i style="background:${c};opacity:.85;border-radius:2px"></i>${l}</span>`).join('');
+  }
+
+  const homePt=locToLatLon(_mapHomeLocStr);
+  const hx=homePt?mX(homePt.lon):null, hy=homePt?mY(homePt.lat):null;
+
+  // Connection lines
+  if(hx!==null){
+    Object.entries(fields).forEach(([f4,data])=>{
+      const r=locSvgRect(f4); if(isNaN(r.cx)) return;
+      const avgD=data.dists.reduce((a,b)=>a+b,0)/data.dists.length;
+      const fc=_mapColorMode==='dist'?distColor(Math.round(avgD)):
+               _mapColorMode==='qso'?qsoCountColor(data.qsos.length,maxQso):modeColor(data.ssb,data.cw);
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',hx);line.setAttribute('y1',hy);
+      line.setAttribute('x2',r.cx);line.setAttribute('y2',r.cy);
+      line.setAttribute('stroke',fc);line.setAttribute('stroke-width','0.7');
+      line.setAttribute('opacity','0.25'); g.appendChild(line);
+    });
+  }
+
+  // Locator rectangles
+  Object.entries(fields).forEach(([f4,data])=>{
+    const r=locSvgRect(f4); if(isNaN(r.x)) return;
+    bx0=Math.min(bx0,r.x); by0=Math.min(by0,r.y);
+    bx1=Math.max(bx1,r.x+r.w); by1=Math.max(by1,r.y+r.h);
+
+    const avgDist=Math.round(data.dists.reduce((a,b)=>a+b,0)/data.dists.length);
+    const maxDistF=Math.max(...data.dists);
+    const fc=_mapColorMode==='dist'?distColor(avgDist):
+             _mapColorMode==='qso'?qsoCountColor(data.qsos.length,maxQso):modeColor(data.ssb,data.cw);
+
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',r.x+0.3); rect.setAttribute('y',r.y+0.3);
+    rect.setAttribute('width',r.w-0.6); rect.setAttribute('height',r.h-0.6);
+    rect.setAttribute('fill',fc); rect.setAttribute('fill-opacity','0.72');
+    rect.setAttribute('stroke','#fff'); rect.setAttribute('stroke-opacity','0.35');
+    rect.setAttribute('stroke-width','0.4'); rect.setAttribute('rx','1');
+    rect.style.cursor='pointer';
+
+    const calls=[...new Set(data.qsos.map(q=>q.call))].sort().join(', ');
+    const modeStr=[data.ssb?`SSB: ${data.ssb}`:'',data.cw?`CW: ${data.cw}`:'',data.fm?`FM: ${data.fm}`:''].filter(Boolean).join(' · ');
+    rect.addEventListener('mouseenter',ev=>{
+      rect.setAttribute('stroke-opacity','1'); rect.setAttribute('fill-opacity','0.95');
+      const tip=document.getElementById('mapTooltip');
+      tip.innerHTML=`<b>${escapeHTML(f4)}</b><br>${t('mapTooltipQso')}: <b>${data.qsos.length}</b> · ${modeStr}<br>${t('tblDist')}: ${t('mapTooltipAvg')} ${avgDist} km · ${t('mapTooltipMax')} ${maxDistF} km<br><span style="color:#7d8590;font-size:10px">${escapeHTML(calls)}</span>`;
+      tip.style.display='block'; positionTooltip(ev,tip);
+    });
+    rect.addEventListener('mousemove',ev=>positionTooltip(ev,document.getElementById('mapTooltip')));
+    rect.addEventListener('mouseleave',()=>{
+      rect.setAttribute('stroke-opacity','0.35'); rect.setAttribute('fill-opacity','0.72');
+      document.getElementById('mapTooltip').style.display='none';
+    });
+    g.appendChild(rect);
+
+    // Labels (font-size in SVG user units — scale naturally with zoom)
+    const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t1.setAttribute('x',r.cx); t1.setAttribute('y',r.cy-1.5);
+    t1.setAttribute('text-anchor','middle'); t1.setAttribute('dominant-baseline','auto');
+    t1.setAttribute('font-size','7'); t1.setAttribute('font-weight','600');
+    t1.setAttribute('font-family','Space Mono,monospace');
+    t1.setAttribute('fill','#fff'); t1.setAttribute('opacity','0.92');
+    t1.setAttribute('pointer-events','none'); t1.textContent=f4;
+    g.appendChild(t1);
+    const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t2.setAttribute('x',r.cx); t2.setAttribute('y',r.cy+6.5);
+    t2.setAttribute('text-anchor','middle');
+    t2.setAttribute('font-size','5.5'); t2.setAttribute('font-family','DM Sans,sans-serif');
+    t2.setAttribute('fill','#fff'); t2.setAttribute('opacity','0.65');
+    t2.setAttribute('pointer-events','none'); t2.textContent=data.qsos.length+'×';
+    g.appendChild(t2);
+  });
+
+  if(bx0<Infinity) _workedBounds={x0:bx0,y0:by0,x1:bx1,y1:by1};
+
+  // Home marker
+  if(hx!==null){
+    [['5','#ff7b72','0.25','1.5'],['2.5','#ff7b72','1','0']].forEach(([r,c,fo,sw])=>{
+      const ci=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      ci.setAttribute('cx',hx); ci.setAttribute('cy',hy); ci.setAttribute('r',r);
+      ci.setAttribute('fill',c); ci.setAttribute('fill-opacity',fo);
+      if(+sw>0){ci.setAttribute('stroke',c); ci.setAttribute('stroke-width',sw);}
+      g.appendChild(ci);
+    });
+    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',hx+7); lbl.setAttribute('y',hy-4);
+    lbl.setAttribute('font-size','7'); lbl.setAttribute('font-family','Space Mono,monospace');
+    lbl.setAttribute('fill','#ff7b72'); lbl.setAttribute('font-weight','bold');
+    lbl.setAttribute('pointer-events','none');
+    lbl.textContent=_mapHomeCall||_mapHomeLocStr; g.appendChild(lbl);
+  }
+
+  zg.appendChild(g);
+}
+
+function positionTooltip(ev,tip){
+  const wr=document.getElementById('locatorMap').getBoundingClientRect();
+  let x=ev.clientX-wr.left+14, y=ev.clientY-wr.top+14;
+  if(x+270>wr.width) x=ev.clientX-wr.left-278;
+  if(y+115>wr.height) y=ev.clientY-wr.top-120;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+
+function initMap(qsos,homeLocStr,homeCall){
+  _mapQsosData=[...qsos]; _mapHomeLocStr=homeLocStr||'JN75FO'; _mapHomeCall=homeCall||'';
+  _mapColorMode='dist'; _vx=0; _vy=0; _vz=1;
+  document.querySelectorAll('.map-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btnColorDist').classList.add('active');
+  buildBaseSvg(); renderMapData(); initMapPan();
+  setTimeout(()=>{ if(_workedBounds) mapFitWorked(); }, 60);
+}
+
+// ── drag & drop
+const box = document.getElementById('dropBox');
+box.addEventListener('dragover', e=>{ e.preventDefault(); box.classList.add('drag'); });
+box.addEventListener('dragleave', ()=>box.classList.remove('drag'));
+box.addEventListener('drop', e=>{ e.preventDefault(); box.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); });
+document.getElementById('fileInput').addEventListener('change', e=>handleFile(e.target.files[0]));
+</script>
+</body>
+</html>
