@@ -21,13 +21,13 @@ Status: [ ] = ni implementirano, [x] = implementirano
 
 ## Prioriteta 2 — Vizualizacije
 
-- [ ] **Timeline QSO**: Točkovni grafikon čas vs. razdalja — prikaže, kdaj so bile narejene daljše zveze.
+- [x] **Timeline QSO**: Točkovni grafikon čas vs. razdalja — prikaže, kdaj so bile narejene daljše zveze. *(v1.1)*
 
-- [ ] **Heatmap aktivnosti**: Ura × razdalja (ali ura × azimut) kot barvna matrika — enostavno videti "zlato uro" tekmovanja.
+- [x] **Heatmap aktivnosti**: Ura × razdalja kot barvna matrika — enostavno videti "zlato uro" tekmovanja. *(v1.1)*
 
-- [ ] **Animirana karta**: Predvajanje QSO v kronološkem zaporedju s časovnim drsčem (slider).
+- [x] **Animirana karta**: Predvajanje QSO v kronološkem zaporedju s časovnim drsčem (slider). *(v1.1)*
 
-- [ ] **Krivulja kumulativnih točk**: Grafikon naraščanja skupnih točk skozi čas tekmovanja.
+- [x] **Krivulja kumulativnih točk**: Grafikon naraščanja skupnih točk skozi čas tekmovanja. *(v1.1)*
 
 ---
 
@@ -38,6 +38,68 @@ Status: [ ] = ni implementirano, [x] = implementirano
 - [ ] **Izboljšan PDF**: Namesto `window.print()` generiranje pravega PDF z [jsPDF](https://github.com/parallax/jsPDF) — fiksna postavitev, logotip, brez odvisnosti od tiskalnih nastavitev brskalnika. *Zahteva dodaten CDN vir (~250 kB).*
 
 - [ ] **Izvoz karte kot SVG**: Poleg PNG omogoči izvoz lokatorske karte v vektorskem SVG formatu.
+
+### Izvoz analize v HTML za vgradnjo na spletno stran (WordPress, blog …)
+
+Spodaj so možnosti za izvoz celotnega poročila v obliki, ki jo je mogoče objaviti ali vgraditi na drugo spletno stran brez strežnika in brez JavaScript odvisnosti.
+
+#### Opcija A — Samostojni HTML posnetek *(priporočeno)*
+Gumb **"Izvozi poročilo (HTML)"** ustvari novo `.html` datoteko, ki vsebuje:
+- vse grafikone kot vgrajene slike `<img src="data:image/png;base64,...">` (iz Chart.js canvas),
+- lokatorsko karto kot inline SVG,
+- metrike, tabele in legendo kot statičen HTML,
+- vse stile inline (brez zunanjih CSS),
+- brez JavaScript — čisti statičen dokument.
+
+Datoteko je mogoče:
+- neposredno odpreti v brskalniku in poslati po e-pošti,
+- priložiti kot prilogo forumskemu prispevku,
+- v WordPress prilepiti z blokom **"Prilagojeni HTML"** (Custom HTML block),
+- vgraditi z `<iframe src="analiza.html">` po gostovanju na kateremkoli spletnem prostoru.
+
+**Prednosti**: brez odvisnosti, popolnoma prenosna datoteka, arhivsko prikladna.  
+**Slabosti**: grafikoni so statične slike (brez hover tooltipov), animirana karta ni vključena.
+
+---
+
+#### Opcija B — Miniaturna interaktivna stran z vgrajenimi podatki
+Izvozi `.html` datoteko, ki je strukturno enaka aplikaciji, toda namesto bralnika datotek vsebuje QSO podatke vgrajene kot JSON spremenljivka:
+```javascript
+const EMBEDDED_DATA = { header: {...}, qsos: [...] };
+```
+Stran se ob nalaganju takoj izriše (brez gumba za nalaganje). Vsi grafikoni so interaktivni (Chart.js, kompas, karta). Datoteko je mogoče gostovati kot statično stran (GitHub Pages, Netlify, spletni prostor) ali na WordPress z vtičnikom za statično HTML gostovanje.
+
+**Prednosti**: polna interaktivnost, vsebuje animirano karto.  
+**Slabosti**: datoteka je večja (~500 kB z vsemi potmi SVG + CDN zahteva internet za Chart.js), vgradnja z `<iframe>` v WordPress zahteva vtičnik (npr. *Advanced iFrame*).
+
+---
+
+#### Opcija C — ZIP s PNG slikami + HTML poročilo
+Izvozi `.zip` arhiv z:
+- posameznimi PNG izvozi vsakega grafikona,
+- `report.html` z `<img src="hour.png">` referencami,
+- `qsos.csv` s celotno tabelo zvez.
+
+Namenjeno: nalaganje PNG slik v WordPress medijsko knjižnico in vstavljanje z Gutenberg blokom za slike + tabelo.
+
+**Prednosti**: slike so ločene in po posameznih blokov vgrajene v prispevek.  
+**Slabosti**: zahteva JavaScript knjižnico za ustvarjanje ZIP na strani brskalnika ([JSZip](https://stuk.github.io/jszip/), ~100 kB), večstopenjski uvozni postopek za WordPress.
+
+---
+
+#### Opcija D — Permalink na GitHub Pages z URL-kodirano vsebino
+Namesto lokalne datoteke se na GitHub Pages gostovana aplikacija odpre z vsebino dnevnika kodirano v URL hash ali prek Gist API:
+- Majhni dnevniki (< 8 kB): gzip + base64 v `#data=...` fragmentu URL.
+- Večji dnevniki: naložiti na GitHub Gist, aplikacija prebere prek Gist API in se izriše.
+
+Rezultat: permalink, ki ga je mogoče vgraditi z `<a href>` ali `<iframe>`.
+
+**Prednosti**: nobene lokalne datoteke, deljivo z URL-jem.  
+**Slabosti**: URL z base64 je nepregleden; Gist API zahteva token; zasebnost (dnevnik gre na GitHub).
+
+---
+
+**Priporočeni vrstni red implementacije**: A → B → C. Opcija D je kompleksna in primerna le, če aplikacija dobi spletni portal.
 
 ---
 
@@ -57,15 +119,18 @@ Status: [ ] = ni implementirano, [x] = implementirano
 
 ## Prioriteta 5 — Skupnost
 
-- [ ] **GitHub Pages namestitev**: Objava kot `https://s56oa.github.io/EDIAnalitika/` — direkten dostop brez prenosa datoteke.
+- [x] **GitHub Pages namestitev**: Objava kot `https://s56oa.github.io/EDIAnalitika/` *(v1.0)*
 
-- [ ] **Testna EDI datoteka v repozitoriju**: Primer anonimiziranega `.edi` dnevnika za demonstracijo in testiranje (`sample.edi`).
+- [x] **Testna EDI datoteka v repozitoriju**: `S59DGOJulijsko2021.edi` — anonimiziran primer za demonstracijo in testiranje. *(v1.0)*
 
-- [ ] **CHANGELOG.md**: Vodenje sprememb po verzijah v standardnem formatu [Keep a Changelog](https://keepachangelog.com/).
+- [x] **CHANGELOG.md**: Vodenje sprememb po verzijah v standardnem formatu [Keep a Changelog](https://keepachangelog.com/). *(v1.0)*
 
 ---
 
 ## Unit testi — ugotovitve
+
+- [x] **Opcija B — Browser testi** (`tests.html`): iframe-based vizualni prikaz, 84 testnih primerov. *(v1.0)*
+- [x] **Node.js CLI runner** (`run_tests.js`): brez strežnika, brez zunanjih odvisnosti. *(v1.0)*
 
 Ker je aplikacija ena HTML datoteka brez modularnih izvozov, direktni unit testi z orodji kot je Jest niso takoj možni. Opcije:
 
@@ -77,10 +142,5 @@ npm init -y && npm install --save-dev jest
 ```
 Slabost: aplikacija ni več povsem "en sam HTML".
 
-### Opcija B — Browser testi z `<script>` injektom (brez build sistema)
-Ustvari `tests.html`, ki naloži `edi_analytics.html` funkcije prek `<script src="">` in požene asercije v konzoli. Brez zunanjih odvisnosti, deluje v brskalniku.
-
 ### Opcija C — Playwright / Puppeteer E2E testi
 Avtomatizirani testi v pravem brskalniku: naloži `.edi` datoteko, preveri, da se prikažejo pravi metapodatki in stevilo QSO. Bolj kompleksno, a testira celotno aplikacijo.
-
-**Priporočilo**: Za zdaj je **Opcija B** (tests.html) najlažja brez spremembe arhitekture. Opcija A je smiselna, če se aplikacija nadalje razvija.
