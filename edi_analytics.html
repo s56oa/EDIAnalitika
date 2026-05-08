@@ -140,6 +140,7 @@ tr:hover td { background: rgba(88,166,255,0.04); }
 .badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px; font-family: 'Space Mono', monospace; }
 .ssb { background: rgba(88,166,255,0.15); color: #58a6ff; }
 .cw  { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.fm  { background: rgba(240,136,62,0.15); color: #f0883e; }
 
 /* ── LEGEND ──────────────────────────────── */
 .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
@@ -269,6 +270,7 @@ tr:hover td { background: rgba(88,166,255,0.04); }
     </div>
     <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0">
       <button class="pdf-btn" onclick="window.print()" data-i18n="btnPrint">Natisni / PDF</button>
+      <button class="pdf-btn" onclick="exportHTML()" data-i18n="btnExportHtml">Izvozi HTML</button>
       <button class="reset-btn" style="margin-left:0" onclick="resetApp()" data-i18n="btnReset">↩ Nov dnevnik</button>
     </div>
   </div>
@@ -419,7 +421,7 @@ tr:hover td { background: rgba(88,166,255,0.04); }
 // ═══════════════════════════════════════
 //  I18N
 // ═══════════════════════════════════════
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 document.querySelector('.version-badge').textContent = 'v' + APP_VERSION;
 
 const STRINGS = {
@@ -450,6 +452,7 @@ sl:{
   chartHeatmap:'Heatmap aktivnosti (ura × razdalja)',
   chartAnimMap:'Animirana karta zvez',
   animSpeed:'Hitrost:',
+  btnExportHtml:'Izvozi HTML',
 },
 en:{
   tagline:'amateur radio log analytics',
@@ -478,6 +481,7 @@ en:{
   chartHeatmap:'Activity heatmap (hour × distance)',
   chartAnimMap:'Animated QSO map',
   animSpeed:'Speed:',
+  btnExportHtml:'Export HTML',
 }};
 let _lang = 'sl';
 let _lastRenderData = null;
@@ -607,6 +611,228 @@ function _dlPNG(canvas, fname){
 }
 
 // ═══════════════════════════════════════
+//  HTML REPORT EXPORT
+// ═══════════════════════════════════════
+async function exportHTML() {
+  const hdrCall = document.getElementById('hdrCall')?.textContent || 'LOG';
+
+  // ── Helpers
+  function canvasToPng(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.width || !el.height) return null;
+    const tmp = document.createElement('canvas');
+    tmp.width = el.width; tmp.height = el.height;
+    const tc = tmp.getContext('2d');
+    tc.fillStyle = '#161b22'; tc.fillRect(0,0,tmp.width,tmp.height);
+    tc.drawImage(el,0,0);
+    return tmp.toDataURL('image/png');
+  }
+
+  function svgToPngAsync(svgEl, w, h, bg) {
+    return new Promise(resolve => {
+      const clone = svgEl.cloneNode(true);
+      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      clone.setAttribute('width',w); clone.setAttribute('height',h);
+      const st = document.createElementNS('http://www.w3.org/2000/svg','style');
+      st.textContent = 'text{font-family:monospace}';
+      clone.insertBefore(st, clone.firstChild);
+      const str = new XMLSerializer().serializeToString(clone);
+      const b64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(str)));
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = w*2; c.height = h*2;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = bg||'#161b22'; ctx.fillRect(0,0,c.width,c.height);
+        ctx.drawImage(img,0,0,c.width,c.height);
+        resolve(c.toDataURL('image/png'));
+      };
+      img.onerror = () => resolve(null);
+      img.src = b64;
+    });
+  }
+
+  function countryBarsToPngData() {
+    const bars = document.querySelectorAll('#countryBars .bar-row');
+    if (!bars.length) return null;
+    const el = document.getElementById('countryBarsWrap');
+    const PAD=20, LBL=100, BAR_H=16, GAP=7, VAL_W=36;
+    const W2 = (el.closest('.card')||el).offsetWidth - PAD*2;
+    const H2 = PAD + bars.length*(BAR_H+GAP) + PAD;
+    const DPR=2;
+    const c = document.createElement('canvas');
+    c.width = W2*DPR; c.height = H2*DPR;
+    const cx = c.getContext('2d');
+    cx.scale(DPR,DPR);
+    cx.fillStyle='#161b22'; cx.fillRect(0,0,W2,H2);
+    let y = PAD;
+    bars.forEach(row => {
+      const lbl = row.querySelector('.bar-lbl')?.textContent||'';
+      const val = row.querySelector('.bar-val')?.textContent||'';
+      const fill = row.querySelector('.bar-fill');
+      const pct = fill ? parseFloat(fill.style.width)||0 : 0;
+      const color = fill ? fill.style.background : '#888';
+      const barW = W2-PAD-LBL-GAP-VAL_W;
+      cx.fillStyle='#7d8590'; cx.font='11px DM Sans,sans-serif';
+      cx.textAlign='right'; cx.textBaseline='middle';
+      cx.fillText(lbl, PAD+LBL-4, y+BAR_H/2);
+      cx.fillStyle='#1c2333'; cx.beginPath(); cx.roundRect(PAD+LBL,y,barW,BAR_H,3); cx.fill();
+      const fw = Math.round(barW*pct/100);
+      if(fw>0){ cx.fillStyle=color; cx.beginPath(); cx.roundRect(PAD+LBL,y,fw,BAR_H,3); cx.fill(); }
+      cx.fillStyle='#e6edf3'; cx.font='11px Space Mono,monospace';
+      cx.textAlign='left'; cx.textBaseline='middle';
+      cx.fillText(val, PAD+LBL+barW+6, y+BAR_H/2);
+      y += BAR_H+GAP;
+    });
+    return c.toDataURL('image/png');
+  }
+
+  // ── Capture all charts
+  const hourPng     = canvasToPng('hourChart');
+  const distPng     = canvasToPng('distChart');
+  const modePng     = canvasToPng('modeChart');
+  const compassPng  = canvasToPng('compassCanvas');
+  const azPng       = canvasToPng('azChart');
+  const timelinePng = canvasToPng('timelineChart');
+  const cumPtsPng   = canvasToPng('cumPtsChart');
+  const heatmapPng  = canvasToPng('heatmapCanvas');
+  const countryPng  = countryBarsToPngData();
+  const mapSvgEl    = document.getElementById('mapSvg');
+  const mapPng      = await svgToPngAsync(mapSvgEl, mapSvgEl.clientWidth||900, 520, '#0d1a2a');
+
+  // ── Capture existing rendered HTML
+  const callSafe    = escapeHTML(hdrCall);
+  const nameSafe    = escapeHTML(document.getElementById('hdrName')?.textContent||'');
+  const subSafe     = escapeHTML(document.getElementById('hdrSub')?.textContent||'');
+  const metricsHtml = document.getElementById('metrics').innerHTML;
+  const opsHtml     = document.getElementById('hdrOps').innerHTML;
+  const modeLegHtml = document.getElementById('modeLegend').innerHTML;
+  const topHeadHtml = document.getElementById('topHead').innerHTML;
+  const topBodyHtml = document.getElementById('topBody').innerHTML;
+  const allHeadHtml = document.getElementById('allHead').innerHTML;
+  const allBodyHtml = document.getElementById('allBody').innerHTML;
+  const opsLabel    = _lang==='sl' ? 'Operatorji' : 'Operators';
+  const now         = new Date().toISOString().slice(0,10);
+
+  function ci(src, alt) {
+    return src ? `<img class="ci" src="${src}" alt="${escapeHTML(alt||'')}">` : '';
+  }
+  function card(title, body) {
+    return `<div class="card"><div class="ct">${escapeHTML(title)}</div>${body}</div>\n`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="${_lang}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${callSafe} — ${nameSafe}</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--border:#30363d;--text:#e6edf3;--muted:#7d8590;--accent:#58a6ff;--accent2:#3fb950;--accent3:#f0883e;--accent4:#ff7b72;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;padding:1.5rem 2rem 3rem;max-width:1300px;margin:0 auto;}
+.hdr{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:2rem;flex-wrap:wrap;}
+.call{font-family:monospace;font-size:1.6rem;color:var(--accent);font-weight:700;}
+.mn{font-size:.95rem;font-weight:500;margin-bottom:2px;}
+.ms{font-size:.8rem;color:var(--muted);}
+.ops{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.op-chip{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 10px;font-family:monospace;font-size:12px;color:var(--accent);}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem;}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;}
+.metric-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.metric-val{font-family:monospace;font-size:1.5rem;line-height:1;}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1rem;}
+.ct{font-family:monospace;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.ct::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:var(--accent);}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.r2>.card{margin-bottom:0;}
+.ci{width:100%;height:auto;border-radius:6px;display:block;}
+.legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.qso-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{font-size:10px;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);font-weight:500;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+td{padding:5px 8px;border-bottom:1px solid rgba(48,54,61,.5);color:var(--text);font-family:monospace;font-size:11px;white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+.badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;font-family:monospace;}
+.ssb{background:rgba(88,166,255,.15);color:#58a6ff;}
+.cw{background:rgba(63,185,80,.15);color:#3fb950;}
+.fm{background:rgba(240,136,62,.15);color:#f0883e;}
+.footer{font-size:11px;color:var(--muted);text-align:center;margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);}
+@media(max-width:700px){.r2{grid-template-columns:1fr;}}
+@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}@page{margin:10mm;}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="call">${callSafe}</div>
+    <div class="mn">${nameSafe}</div>
+    <div class="ms">${subSafe}</div>
+  </div>
+  <div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${opsLabel}:</div>
+    <div class="ops">${opsHtml}</div>
+  </div>
+</div>
+
+<div class="metrics">${metricsHtml}</div>
+
+${card(t('chartHour'), ci(hourPng, t('chartHour')))}
+
+<div class="r2">
+${card(t('chartDist'), ci(distPng, t('chartDist')))}
+${card(t('chartMode'), `<div class="legend">${modeLegHtml}</div>${ci(modePng, t('chartMode'))}`)}
+</div>
+
+<div class="r2">
+${card(t('chartCompass'), ci(compassPng, t('chartCompass')))}
+${card(t('chartCountry'), ci(countryPng, t('chartCountry')))}
+</div>
+
+${card(t('chartAz'), ci(azPng, t('chartAz')))}
+
+${card(t('chartMap'), ci(mapPng, t('chartMap')))}
+
+<div class="r2">
+${card(t('chartTimeline'), ci(timelinePng, t('chartTimeline')))}
+${card(t('chartCumPts'), ci(cumPtsPng, t('chartCumPts')))}
+</div>
+
+${card(t('chartHeatmap'), ci(heatmapPng, t('chartHeatmap')))}
+
+<div class="card">
+  <div class="ct">${escapeHTML(t('tableTop'))}</div>
+  <div class="qso-wrap"><table><thead>${topHeadHtml}</thead><tbody>${topBodyHtml}</tbody></table></div>
+</div>
+
+<div class="card">
+  <div class="ct">${escapeHTML(t('tableAll'))}</div>
+  <div class="qso-wrap"><table><thead>${allHeadHtml}</thead><tbody>${allBodyHtml}</tbody></table></div>
+</div>
+
+<div class="footer">
+  EDI Log Analitika v${APP_VERSION} &nbsp;&middot;&nbsp;
+  <a href="https://github.com/s56oa/EDIAnalitika" style="color:var(--muted);text-decoration:none">s56oa/EDIAnalitika</a>
+  &nbsp;&middot;&nbsp; ${now}
+</div>
+
+</body>
+</html>`;
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.download = hdrCall + '_edi_report.html';
+  a.href = url;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+// ═══════════════════════════════════════
 //  EDI PARSER
 // ═══════════════════════════════════════
 function parseEDI(text) {
@@ -620,7 +846,7 @@ function parseEDI(text) {
     if (!line) continue;
     if (line.startsWith('[')) { section = line.toLowerCase(); continue; }
 
-    if (section === '[qsorecords' || section.startsWith('[qsorecords;')) {
+    if (section.startsWith('[qsorecords')) {
       // date;time;call;mode;txrst;txnr;rxrst;rxnr;exchange;wwl;dist;...
       const p = line.split(';');
       if (p.length < 10) continue;
@@ -798,7 +1024,7 @@ function getCountry(call) {
 }
 
 function modeName(m) { return m===1?'SSB': m===2?'CW': m===3?'FM':'??'; }
-function modeClass(m){ return m===1?'ssb': m===2?'cw': 'ssb'; }
+function modeClass(m){ return m===1?'ssb': m===2?'cw': m===3?'fm':'ssb'; }
 
 // ═══════════════════════════════════════
 //  CHART INSTANCES (for destroy on reload)
@@ -865,9 +1091,6 @@ function render(data) {
   };
 
   // ── HOUR CHART — sorted from first QSO hour, up to 24h window
-  const hourMap = {};
-  qsos.forEach(q=>{ hourMap[q.hh]=(hourMap[q.hh]||0)+1; });
-
   // Find absolute minute of first and last QSO (across day boundary)
   // Each QSO has .hh and .dd (day). Use relative ordering from EDI date.
   const firstQ = qsos.reduce((a,b)=>{
@@ -900,13 +1123,7 @@ function render(data) {
     if(slotH>=0 && slotH<24) hourMapFull[slotH]=(hourMapFull[slotH]||0)+1;
   });
 
-  // Labels: show clock time, mark day boundary with +1d
-  const startDate = {dd:firstQ.dd, mm:firstQ.mm};
-  const hourLabels = orderedH.map((h,i)=>{
-    const crossed = (startHour+i)>=24;
-    return h+':00'+(crossed&&i>0&&(startHour+i)%24===0?'*':'');
-  });
-  // Simpler label: just HH:00, but add day marker when clock wraps past midnight
+  // Labels: HH:00, mark day boundary when clock wraps past midnight
   const hourLabels2 = Array.from({length:spanH},(_,i)=>{
     const clockH = (startHour+i)%24;
     const isNextDay = (startHour+i)>=24;
@@ -1286,7 +1503,7 @@ let _mapPanInited=false;
 
 function applyTransform(){
   const g=document.getElementById('mapZoomGroup');
-  if(g) g.setAttribute('transform',`translate(${_vx.toFixed(2)},${_vy.toFixed(2)}) scale(${_vz.toFixed(4)})`);;
+  if(g) g.setAttribute('transform',`translate(${_vx.toFixed(2)},${_vy.toFixed(2)}) scale(${_vz.toFixed(4)})`)
 }
 
 function _zoomAt(factor, svgX, svgY){

@@ -10,14 +10,15 @@ const src  = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1];
 const blocks = [
   src.match(/function escapeHTML[\s\S]*?\}/)[0],
   src.match(/function modeName[\s\S]*?\}/)[0],
+  src.match(/function modeClass[\s\S]*?\}/)[0],
   src.match(/function locToLatLon[\s\S]*?\n\}/)[0],
   src.match(/function bearing[\s\S]*?\n\}/)[0],
   src.match(/function haversine[\s\S]*?\n\}/)[0],
   src.match(/const PFX = \[[\s\S]*?\];[\s\S]*?function getCountry[\s\S]*?\n\}/)[0],
   src.match(/function parseEDI[\s\S]*?\n\}/)[0],
 ].join('\n');
-const {escapeHTML, modeName, locToLatLon, bearing, haversine, getCountry, parseEDI} =
-  new Function(blocks + '\nreturn {escapeHTML,modeName,locToLatLon,bearing,haversine,getCountry,parseEDI}')();
+const {escapeHTML, modeName, modeClass, locToLatLon, bearing, haversine, getCountry, parseEDI} =
+  new Function(blocks + '\nreturn {escapeHTML,modeName,modeClass,locToLatLon,bearing,haversine,getCountry,parseEDI}')();
 
 // ── Test framework ──────────────────────────────────────────────
 let pass = 0, fail = 0;
@@ -59,6 +60,13 @@ assertEqual(modeName(2), 'CW',  'mode 2 = CW');
 assertEqual(modeName(3), 'FM',  'mode 3 = FM');
 assertEqual(modeName(0), '??',  'unknown mode = ??');
 assertEqual(modeName(9), '??',  'out-of-range = ??');
+
+// ════════════════════════════════════════════
+group('modeClass');
+assertEqual(modeClass(1), 'ssb', 'mode 1 = ssb');
+assertEqual(modeClass(2), 'cw',  'mode 2 = cw');
+assertEqual(modeClass(3), 'fm',  'mode 3 = fm');
+assertEqual(modeClass(0), 'ssb', 'unknown mode = ssb (fallback)');
 
 // ════════════════════════════════════════════
 group('locToLatLon');
@@ -177,6 +185,8 @@ assertEqual(noSect.qsos.length, 0, 'no QSORecords section → 0 QSOs');
 assertEqual(parseEDI('[QSORecords;1]\n210703;1000;DL1ABC;1;59').qsos.length, 0, 'QSO with <10 fields skipped');
 const crlf = '[REG1TEST;1]\r\nPCall=S56OA\r\n[QSORecords;1]\r\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\r\n';
 assertEqual(parseEDI(crlf).qsos.length, 1, 'CRLF line endings handled');
+const noCount = '[REG1TEST;1]\nPCall=S56OA\n[QSORecords]\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n';
+assertEqual(parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed correctly');
 
 // ════════════════════════════════════════════
 console.log('\n══════════════════════════════════════');

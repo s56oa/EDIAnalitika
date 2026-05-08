@@ -43,7 +43,7 @@ Status: [ ] = ni implementirano, [x] = implementirano
 
 Spodaj so možnosti za izvoz celotnega poročila v obliki, ki jo je mogoče objaviti ali vgraditi na drugo spletno stran brez strežnika in brez JavaScript odvisnosti.
 
-#### Opcija A — Samostojni HTML posnetek *(priporočeno)*
+#### [x] Opcija A — Samostojni HTML posnetek *(implementirano v v1.2)*
 Gumb **"Izvozi poročilo (HTML)"** ustvari novo `.html` datoteko, ki vsebuje:
 - vse grafikone kot vgrajene slike `<img src="data:image/png;base64,...">` (iz Chart.js canvas),
 - lokatorsko karto kot inline SVG,

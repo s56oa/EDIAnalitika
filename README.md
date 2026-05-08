@@ -30,6 +30,7 @@ Namenjena je radioamaterjem, ki tekmujejo v VHF (in UHF) tekmovanjih, kjer se za
 - **Animirana karta zvez** — kronološko predvajanje QSO na SVG karti s časovnim drsnikom, prikazom UTC časa in statistike; nastavljiva hitrost, povečava in premikanje
 - **Tabeli QSO** — Top 15 po razdalji in celotna tabela vseh zvez
 - **Izvoz PNG** — vsak grafikon in karta se izvozi kot PNG slika z imenom postaje
+- **Izvoz poročila v HTML** — gumb "Izvozi poročilo (HTML)" ustvari samostojno `.html` datoteko z vsemi grafikoni kot vgrajenimi PNG slikami, karto kot inline SVG in tabelami kot statičen HTML brez JavaScript ali zunanjih odvisnosti; primerno za WordPress, e-pošto ali arhiviranje
 - **Tisk / PDF** — gumb za tiskanje oziroma shranjevanje v PDF neposredno iz brskalnika
 - **Dvojezičnost** — SL / EN preklapljanje brez ponovnega nalaganja datoteke
 
@@ -111,6 +112,7 @@ It is aimed at amateur radio operators who participate in VHF (and UHF) contests
 - **Animated QSO map** — chronological replay of QSOs on a zoomable SVG map with play/pause, time slider, UTC clock, QSO/km counter and adjustable speed
 - **QSO tables** — Top 15 by distance and full log table
 - **PNG export** — each chart and the map can be saved as a PNG image named after the station callsign
+- **HTML report export** — "Export report (HTML)" button generates a self-contained `.html` file with all charts as embedded PNG images, the map as inline SVG, and tables as static HTML — no JavaScript or external dependencies; suitable for WordPress, email, or archiving
 - **Print / PDF** — one-click print or browser Save-as-PDF for a complete statistics report
 - **Bilingual UI** — SL / EN switching without re-loading the file
 

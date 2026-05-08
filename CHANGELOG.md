@@ -5,6 +5,23 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.2.0] — 2026-05-08
+
+### Dodano
+- **Izvoz poročila v HTML** — gumb "Izvozi poročilo (HTML)" ustvari samostojno `.html` datoteko z vsemi grafikoni kot vgrajenimi PNG (base64), lokatorsko karto kot inline SVG, metrikami in tabelami kot statičen HTML brez JavaScript ali zunanjih odvisnosti
+
+### Popravljeno
+- `modeClass()` — FM zveze (način 3) so napačno dobile CSS razred `ssb` namesto `fm`; dodan manjkajoči `.fm` CSS razred v glavnih stilih in izvozenem HTML
+- `parseEDI()` — sekcija `[QSORecords]` brez številke QSO-jev ni bila zaznana; popravek na `startsWith('[qsorecords')`
+- Odvečna podpičja (`;;`) v funkciji `applyTransform()`
+
+### Odstranjeno
+- Mrtva koda: `hourMap`, `startDate`, `hourLabels` (neuporabljene spremenljivke v `render()`)
+
+[1.2.0]: https://github.com/s56oa/EDIAnalitika/releases/tag/v1.2
+
+---
+
 ## [1.1.0] — 2026-05-06
 
 ### Dodano

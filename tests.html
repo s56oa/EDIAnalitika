@@ -113,7 +113,7 @@ document.getElementById('frame').addEventListener('load', function() {
   const w = this.contentWindow;
 
   // Verify functions are accessible
-  const fns = ['escapeHTML','parseEDI','locToLatLon','bearing','haversine','getCountry','modeName'];
+  const fns = ['escapeHTML','parseEDI','locToLatLon','bearing','haversine','getCountry','modeName','modeClass'];
   const missing = fns.filter(f => typeof w[f] !== 'function');
   if (missing.length) {
     _out.innerHTML = `<div style="color:var(--fail)">Cannot access functions: ${missing.join(', ')}<br>
@@ -143,6 +143,15 @@ document.getElementById('frame').addEventListener('load', function() {
   assertEqual(w.modeName(3), 'FM',  'mode 3 = FM');
   assertEqual(w.modeName(0), '??',  'unknown mode = ??');
   assertEqual(w.modeName(9), '??',  'out-of-range mode = ??');
+
+  // ════════════════════════════════════════════
+  //  modeClass
+  // ════════════════════════════════════════════
+  group('modeClass');
+  assertEqual(w.modeClass(1), 'ssb', 'mode 1 = ssb');
+  assertEqual(w.modeClass(2), 'cw',  'mode 2 = cw');
+  assertEqual(w.modeClass(3), 'fm',  'mode 3 = fm');
+  assertEqual(w.modeClass(0), 'ssb', 'unknown mode = ssb (fallback)');
 
   // ════════════════════════════════════════════
   //  locToLatLon — Maidenhead locator → lat/lon
@@ -291,6 +300,9 @@ document.getElementById('frame').addEventListener('load', function() {
 
   const crlf = '[REG1TEST;1]\r\nPCall=S56OA\r\n[QSORecords;1]\r\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\r\n';
   assertEqual(w.parseEDI(crlf).qsos.length, 1, 'CRLF line endings handled');
+
+  const noCount = '[REG1TEST;1]\nPCall=S56OA\n[QSORecords]\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n';
+  assertEqual(w.parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed correctly');
 
   summary();
 });
