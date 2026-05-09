@@ -5,6 +5,23 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.3.0] — 2026-05-09
+
+### Dodano
+- **Svetla / temna tema** — gumb ☀️/🌙 v glavi preklopi med temno (privzeto) in svetlo temo; izbira se shrani v `localStorage`
+- **Izvoz interaktivnega HTML (Opcija B)** — gumb "Izvozi interaktivni HTML" ustvari `.html` datoteko z vgrajenimi QSO podatki kot JSON; vsi grafikoni, karta in animacija so polno interaktivni (Chart.js, SVG karta); deluje brez bralnika datotek; tema, jezik in filter so funkcionalni
+- **Filter tabele QSO** — iskalno polje nad tabelo "Vse zveze" za takojšnje filtriranje po klicnem znaku, lokatorju ali načinu dela
+
+### Popravljeno
+- Statična HTML oznaka različice v glavi popravljena na `v1.3` (JS jo je prepisal pri zagonu, toda statična vrednost je bila zastarela)
+
+### Testi
+- Dodanih 15 novih testov v `tests.html` in 7 v `run_tests.js` za: `APP_VERSION`, `mapThemeColors` (temne in svetle barve), `setTheme` (DOM efekti), prisotnost novih funkcij
+
+[1.3.0]: https://github.com/s56oa/EDIAnalitika/releases/tag/v1.3
+
+---
+
 ## [1.2.0] — 2026-05-08
 
 ### Dodano

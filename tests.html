@@ -304,6 +304,38 @@ document.getElementById('frame').addEventListener('load', function() {
   const noCount = '[REG1TEST;1]\nPCall=S56OA\n[QSORecords]\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n';
   assertEqual(w.parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed correctly');
 
+  // ════════════════════════════════════════════
+  //  v1.3 — Light theme, filter, interactive export
+  // ════════════════════════════════════════════
+  group('v1.3 — version & new functions');
+  // APP_VERSION is const — check DOM badge (JS sets it on load)
+  assertEqual(w.document.querySelector('.version-badge').textContent, 'v1.3', 'version badge shows v1.3');
+  assert(typeof w.setTheme === 'function',              'setTheme is a function');
+  assert(typeof w.mapThemeColors === 'function',        'mapThemeColors is a function');
+  assert(typeof w.filterQsoTable === 'function',        'filterQsoTable is a function');
+  assert(typeof w.exportHTMLInteractive === 'function', 'exportHTMLInteractive is a function');
+
+  group('v1.3 — mapThemeColors');
+  w.setTheme('dark');
+  const dk = w.mapThemeColors();
+  assert(typeof dk === 'object', 'mapThemeColors() returns an object');
+  assert(['sea','land','border','grid'].every(k => k in dk), 'dark theme has sea/land/border/grid keys');
+  assertEqual(dk.sea,  '#0d1a2a', 'dark sea color');
+  assertEqual(dk.land, '#1e2e1a', 'dark land color');
+  w.setTheme('light');
+  const lt = w.mapThemeColors();
+  assertEqual(lt.sea,  '#c8dde8', 'light sea color');
+  assertEqual(lt.land, '#d8e6cc', 'light land color');
+  w.setTheme('dark');
+
+  group('v1.3 — setTheme DOM effects');
+  w.setTheme('light');
+  assert(w.document.documentElement.classList.contains('light'), 'light theme adds .light class to <html>');
+  assertEqual(w.document.getElementById('btnTheme').textContent, '🌙', 'light theme button shows moon emoji');
+  w.setTheme('dark');
+  assert(!w.document.documentElement.classList.contains('light'), 'dark theme removes .light class from <html>');
+  assertEqual(w.document.getElementById('btnTheme').textContent, '☀️', 'dark theme button shows sun emoji');
+
   summary();
 });
 </script>

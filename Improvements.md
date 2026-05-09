@@ -11,7 +11,7 @@ Status: [ ] = ni implementirano, [x] = implementirano
 
 - [ ] **Povleci več datotek za primerjavo**: Prikaz dveh dnevnikov (npr. dve postaji, isto tekmovanje) z ločenimi barvami na karti in v tabelah. *Zahteva redesign podatkovnega modela.*
 
-- [ ] **Filtriranje QSO tabele**: Iskalno polje nad tabelo za filtriranje po klicnem znaku, lokatorju ali načinu dela.
+- [x] **Filtriranje QSO tabele**: Iskalno polje nad tabelo za filtriranje po klicnem znaku, lokatorju ali načinu dela. *(v1.3)*
 
 - [ ] **Razvrščanje stolpcev tabel**: Klik na glavo stolpca razvrsti tabelo naraščajoče/padajoče.
 
@@ -43,7 +43,7 @@ Status: [ ] = ni implementirano, [x] = implementirano
 
 Spodaj so možnosti za izvoz celotnega poročila v obliki, ki jo je mogoče objaviti ali vgraditi na drugo spletno stran brez strežnika in brez JavaScript odvisnosti.
 
-#### [x] Opcija A — Samostojni HTML posnetek *(implementirano v v1.2)*
+#### [x] Opcija A — Samostojni HTML posnetek *(v1.2)*
 Gumb **"Izvozi poročilo (HTML)"** ustvari novo `.html` datoteko, ki vsebuje:
 - vse grafikone kot vgrajene slike `<img src="data:image/png;base64,...">` (iz Chart.js canvas),
 - lokatorsko karto kot inline SVG,
@@ -62,7 +62,7 @@ Datoteko je mogoče:
 
 ---
 
-#### Opcija B — Miniaturna interaktivna stran z vgrajenimi podatki
+#### [x] Opcija B — Miniaturna interaktivna stran z vgrajenimi podatki *(v1.3)*
 Izvozi `.html` datoteko, ki je strukturno enaka aplikaciji, toda namesto bralnika datotek vsebuje QSO podatke vgrajene kot JSON spremenljivka:
 ```javascript
 const EMBEDDED_DATA = { header: {...}, qsos: [...] };
@@ -113,7 +113,7 @@ Rezultat: permalink, ki ga je mogoče vgraditi z `<a href>` ali `<iframe>`.
 
 - [ ] **Service Worker za offline**: Registracija SW, ki cachira aplikacijo in CDN vire ob prvem obisku — deluje brez interneta.
 
-- [ ] **Dark/light mode toggle**: Alternativna svetla tema za tiskanje in boljšo berljivost na svetlih zaslonih.
+- [x] **Dark/light mode toggle**: Alternativna svetla tema za tiskanje in boljšo berljivost na svetlih zaslonih. *(v1.3)*
 
 ---
 

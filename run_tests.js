@@ -189,6 +189,23 @@ const noCount = '[REG1TEST;1]\nPCall=S56OA\n[QSORecords]\n210703;1000;DL1ABC;1;5
 assertEqual(parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed correctly');
 
 // ════════════════════════════════════════════
+group('APP_VERSION & mapThemeColors');
+const vMatch = src.match(/const APP_VERSION\s*=\s*'([^']+)'/);
+assertEqual(vMatch ? vMatch[1] : null, '1.3', 'APP_VERSION constant is "1.3"');
+
+const mapThemeSrc = src.match(/function mapThemeColors\b[\s\S]*?\n\}/)[0];
+const {mapThemeColors: mtcDark}  = new Function(`let _theme='dark';\n${mapThemeSrc}\nreturn {mapThemeColors};`)();
+const {mapThemeColors: mtcLight} = new Function(`let _theme='light';\n${mapThemeSrc}\nreturn {mapThemeColors};`)();
+const dkC = mtcDark();
+const ltC = mtcLight();
+assert(typeof dkC === 'object', 'mapThemeColors returns object');
+assert(['sea','land','border','grid'].every(k => k in dkC), 'dark theme has sea/land/border/grid keys');
+assertEqual(dkC.sea,  '#0d1a2a', 'dark sea color');
+assertEqual(dkC.land, '#1e2e1a', 'dark land color');
+assertEqual(ltC.sea,  '#c8dde8', 'light sea color');
+assertEqual(ltC.land, '#d8e6cc', 'light land color');
+
+// ════════════════════════════════════════════
 console.log('\n══════════════════════════════════════');
 const total = pass + fail;
 console.log(`PASSED: ${pass}   FAILED: ${fail}   TOTAL: ${total}`);

@@ -31,6 +31,9 @@ Namenjena je radioamaterjem, ki tekmujejo v VHF (in UHF) tekmovanjih, kjer se za
 - **Tabeli QSO** — Top 15 po razdalji in celotna tabela vseh zvez
 - **Izvoz PNG** — vsak grafikon in karta se izvozi kot PNG slika z imenom postaje
 - **Izvoz poročila v HTML** — gumb "Izvozi poročilo (HTML)" ustvari samostojno `.html` datoteko z vsemi grafikoni kot vgrajenimi PNG slikami, karto kot inline SVG in tabelami kot statičen HTML brez JavaScript ali zunanjih odvisnosti; primerno za WordPress, e-pošto ali arhiviranje
+- **Izvoz interaktivnega HTML** — gumb "Izvozi interaktivni HTML" ustvari polno interaktivno `.html` datoteko z vgrajenimi QSO podatki (JSON); vsi grafikoni, karta, animacija in filter so funkcionalni; primerno za gostovanje na statičnih straneh
+- **Filter tabele QSO** — iskalno polje za takojšnje filtriranje tabele vseh zvez po klicnem znaku, lokatorju ali načinu dela
+- **Svetla / temna tema** — gumb ☀️/🌙 v glavi preklopi temo; izbira se ohrani v `localStorage`
 - **Tisk / PDF** — gumb za tiskanje oziroma shranjevanje v PDF neposredno iz brskalnika
 - **Dvojezičnost** — SL / EN preklapljanje brez ponovnega nalaganja datoteke
 
@@ -66,7 +69,7 @@ Tipične vrednosti iz glave, ki jih aplikacija prebere:
 
 ### Testiranje
 
-Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName` — skupaj 84 testnih primerov.
+Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors` — skupaj 103 testnih primerov v brskalniku, 96 v CLI.
 
 **V brskalniku** (`tests.html`) — zahteva lokalni strežnik zaradi same-origin politike iframma:
 ```bash
@@ -113,6 +116,9 @@ It is aimed at amateur radio operators who participate in VHF (and UHF) contests
 - **QSO tables** — Top 15 by distance and full log table
 - **PNG export** — each chart and the map can be saved as a PNG image named after the station callsign
 - **HTML report export** — "Export report (HTML)" button generates a self-contained `.html` file with all charts as embedded PNG images, the map as inline SVG, and tables as static HTML — no JavaScript or external dependencies; suitable for WordPress, email, or archiving
+- **Interactive HTML export** — "Export interactive HTML" button generates a fully interactive `.html` file with QSO data embedded as JSON; all charts, map, animated replay, and QSO filter work without a file reader; suitable for static hosting
+- **QSO table filter** — instant search box above the full QSO table; filters by callsign, locator, or mode
+- **Light / dark theme** — ☀️/🌙 toggle in the header switches themes; preference is saved in `localStorage`
 - **Print / PDF** — one-click print or browser Save-as-PDF for a complete statistics report
 - **Bilingual UI** — SL / EN switching without re-loading the file
 
@@ -154,7 +160,7 @@ The application includes a built-in prefix table covering all European DXCC enti
 
 ### Testing
 
-Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName` — 84 test cases in total.
+Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors` — 103 test cases in the browser, 96 via CLI.
 
 **In the browser** (`tests.html`) — requires a local server due to iframe same-origin policy:
 ```bash
