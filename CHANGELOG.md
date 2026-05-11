@@ -5,6 +5,18 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.3.1] — 2026-05-11
+
+### Popravljeno
+- `filterQsoTable()` — filter ni deloval: `<tr>` elementi so bili vstavljeni v `<div>`, kar povzroči ignoriranje s strani HTML parserja; popravljeno z `<tbody>` kot kontejnerjem
+- `.ssb / .cw / .fm` badge barve v glavnem CSS — `color:` je bil hardkodiran na temne akcent barve; zamenjano z `var(--accent/2/3)` za pravilno svetlo temo
+- Az scatter grafikon — barve legende in oznak osi (`#7d8590`) niso bile temo-zavedne; zamenjano s `CC.tickColor`
+- Tooltip karte lokatorjev — barva klicnih znakov (`#7d8590`) hardkodirana; zamenjano z `var(--muted)`
+
+[1.3.1]: https://github.com/s56oa/EDIAnalitika/compare/v1.3...v1.3.1
+
+---
+
 ## [1.3.0] — 2026-05-09
 
 ### Dodano

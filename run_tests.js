@@ -191,7 +191,7 @@ assertEqual(parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed
 // ════════════════════════════════════════════
 group('APP_VERSION & mapThemeColors');
 const vMatch = src.match(/const APP_VERSION\s*=\s*'([^']+)'/);
-assertEqual(vMatch ? vMatch[1] : null, '1.3', 'APP_VERSION constant is "1.3"');
+assertEqual(vMatch ? vMatch[1] : null, '1.3.1', 'APP_VERSION constant is "1.3.1"');
 
 const mapThemeSrc = src.match(/function mapThemeColors\b[\s\S]*?\n\}/)[0];
 const {mapThemeColors: mtcDark}  = new Function(`let _theme='dark';\n${mapThemeSrc}\nreturn {mapThemeColors};`)();
