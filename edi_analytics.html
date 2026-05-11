@@ -557,8 +557,8 @@ function filterQsoTable(q){
   if(!_allBodyHtml) return;
   if(!q.trim()){ document.getElementById('allBody').innerHTML = _allBodyHtml; return; }
   const s = q.toLowerCase();
-  const div = document.createElement('div'); div.innerHTML = _allBodyHtml;
-  document.getElementById('allBody').innerHTML = [...div.querySelectorAll('tr')]
+  const tmp = document.createElement('tbody'); tmp.innerHTML = _allBodyHtml;
+  document.getElementById('allBody').innerHTML = [...tmp.querySelectorAll('tr')]
     .filter(r => r.textContent.toLowerCase().includes(s)).map(r => r.outerHTML).join('');
 }
 
