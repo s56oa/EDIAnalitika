@@ -5,7 +5,9 @@
 
 const fs = require('fs');
 const html = fs.readFileSync(__dirname + '/edi_analytics.html', 'utf8');
-const src  = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1];
+const chartjsClose = html.indexOf('</script>');
+const appOpen = html.indexOf('<script>', chartjsClose);
+const src = html.slice(appOpen + '<script>'.length, html.lastIndexOf('</script>'));
 
 const blocks = [
   src.match(/function escapeHTML[\s\S]*?\}/)[0],
@@ -191,7 +193,7 @@ assertEqual(parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed
 // ════════════════════════════════════════════
 group('APP_VERSION & mapThemeColors');
 const vMatch = src.match(/const APP_VERSION\s*=\s*'([^']+)'/);
-assertEqual(vMatch ? vMatch[1] : null, '1.3.1', 'APP_VERSION constant is "1.3.1"');
+assertEqual(vMatch ? vMatch[1] : null, '1.4', 'APP_VERSION constant is "1.4"');
 
 const mapThemeSrc = src.match(/function mapThemeColors\b[\s\S]*?\n\}/)[0];
 const {mapThemeColors: mtcDark}  = new Function(`let _theme='dark';\n${mapThemeSrc}\nreturn {mapThemeColors};`)();
@@ -204,6 +206,87 @@ assertEqual(dkC.sea,  '#0d1a2a', 'dark sea color');
 assertEqual(dkC.land, '#1e2e1a', 'dark land color');
 assertEqual(ltC.sea,  '#c8dde8', 'light sea color');
 assertEqual(ltC.land, '#d8e6cc', 'light land color');
+
+// ════════════════════════════════════════════
+group('v1.4 — origIdx assignment & sort key logic');
+const sortEDI = [
+  '[REG1TEST;1]',
+  'PCall=S56OA',
+  'PWWLo=JN75FO',
+  '[QSORecords;3]',
+  '210703;1030;DL1ABC;1;59;001;59;001;#;JO31NC;450',
+  '210703;0900;OK1XYZ;2;59;002;59;002;#;JN79IO;210',
+  '210704;0800;S59DGO;1;59;003;59;003;#;JN75GR;50',
+].join('\n');
+const sortData = parseEDI(sortEDI);
+const chronoSorted = [...sortData.qsos].sort((a, b) => {
+  const da = a.yy*10000+a.mm*100+a.dd, db = b.yy*10000+b.mm*100+b.dd;
+  return da !== db ? da - db : a.hh*60+a.mi - (b.hh*60+b.mi);
+});
+chronoSorted.forEach((q, i) => { q.origIdx = i + 1; });
+
+assertEqual(chronoSorted[0].call,    'OK1XYZ', 'chronological: earliest QSO first (09:00)');
+assertEqual(chronoSorted[0].origIdx, 1,        'origIdx = 1 for earliest QSO');
+assertEqual(chronoSorted[1].call,    'DL1ABC', 'chronological: second QSO (10:30)');
+assertEqual(chronoSorted[1].origIdx, 2,        'origIdx = 2 for second QSO');
+assertEqual(chronoSorted[2].call,    'S59DGO', 'chronological: next-day QSO last');
+assertEqual(chronoSorted[2].origIdx, 3,        'origIdx = 3 for next-day QSO');
+
+// origIdx must survive re-sort by other columns
+const byDist = [...chronoSorted].sort((a, b) => b.dist - a.dist);
+assertEqual(byDist[0].dist,    450, 'sort dist desc: 450 km first');
+assertEqual(byDist[0].origIdx,   2, 'origIdx preserved under dist sort (DL1ABC had origIdx 2)');
+assertEqual(byDist[2].dist,     50, 'sort dist desc: 50 km last');
+assertEqual(byDist[2].origIdx,   3, 'origIdx preserved for nearest QSO');
+
+const byCall = [...chronoSorted].sort((a, b) => a.call.localeCompare(b.call));
+assertEqual(byCall[0].call,    'DL1ABC', 'sort call asc: DL < OK < S5');
+assertEqual(byCall[0].origIdx, 2,        'origIdx = 2 preserved under call sort');
+assertEqual(byCall[1].call,    'OK1XYZ', 'sort call asc: OK1 second');
+assertEqual(byCall[2].call,    'S59DGO', 'sort call asc: S5 last');
+
+// sort by mode
+const byMode = [...chronoSorted].sort((a, b) => a.mode - b.mode);
+assertEqual(byMode[0].mode, 1, 'sort mode asc: SSB(1) before CW(2)');
+assertEqual(byMode[2].mode, 2, 'sort mode asc: CW last in this dataset');
+
+// sort by time-of-day primary, date tiebreaker
+const byTime = [...chronoSorted].sort((a, b) => {
+  const ta = (a.hh*60+a.mi)*10000000+(a.yy*10000+a.mm*100+a.dd);
+  const tb = (b.hh*60+b.mi)*10000000+(b.yy*10000+b.mm*100+b.dd);
+  return ta - tb;
+});
+assertEqual(byTime[0].call, 'S59DGO', 'sort time asc: 08:00 first (earlier time of day, regardless of date)');
+assertEqual(byTime[1].call, 'OK1XYZ', 'sort time asc: 09:00 second');
+assertEqual(byTime[2].call, 'DL1ABC', 'sort time asc: 10:30 last');
+
+// tiebreaker: same time of day on different dates → earlier date sorts first
+const tieSortData = [
+  {call:'X1', hh:10, mi:0, dd:5, mm:7, yy:21},
+  {call:'X2', hh:10, mi:0, dd:3, mm:7, yy:21},
+];
+const tieSort = [...tieSortData].sort((a, b) =>
+  ((a.hh*60+a.mi)*10000000+(a.yy*10000+a.mm*100+a.dd)) -
+  ((b.hh*60+b.mi)*10000000+(b.yy*10000+b.mm*100+b.dd))
+);
+assertEqual(tieSort[0].call, 'X2', 'time sort tiebreaker: same time (10:00), earlier date (day 3) sorts first');
+
+// sort direction toggle logic
+let sortCol = 'origIdx', sortDir = 'asc';
+function simulateSortAllTable(col) {
+  sortDir = sortCol === col ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
+  sortCol = col;
+}
+simulateSortAllTable('dist');
+assertEqual(sortCol, 'dist', 'toggle: new col sets _sortCol');
+assertEqual(sortDir, 'asc',  'toggle: new col sets asc');
+simulateSortAllTable('dist');
+assertEqual(sortDir, 'desc', 'toggle: same col flips to desc');
+simulateSortAllTable('dist');
+assertEqual(sortDir, 'asc',  'toggle: same col flips back to asc');
+simulateSortAllTable('call');
+assertEqual(sortCol, 'call', 'toggle: different col changes _sortCol');
+assertEqual(sortDir, 'asc',  'toggle: different col resets to asc');
 
 // ════════════════════════════════════════════
 console.log('\n══════════════════════════════════════');

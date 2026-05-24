@@ -33,6 +33,7 @@ Namenjena je radioamaterjem, ki tekmujejo v VHF (in UHF) tekmovanjih, kjer se za
 - **Izvoz poročila v HTML** — gumb "Izvozi poročilo (HTML)" ustvari samostojno `.html` datoteko z vsemi grafikoni kot vgrajenimi PNG slikami, karto kot inline SVG in tabelami kot statičen HTML brez JavaScript ali zunanjih odvisnosti; primerno za WordPress, e-pošto ali arhiviranje
 - **Izvoz interaktivnega HTML** — gumb "Izvozi interaktivni HTML" ustvari polno interaktivno `.html` datoteko z vgrajenimi QSO podatki (JSON); vsi grafikoni, karta, animacija in filter so funkcionalni; primerno za gostovanje na statičnih straneh
 - **Filter tabele QSO** — iskalno polje za takojšnje filtriranje tabele vseh zvez po klicnem znaku, lokatorju ali načinu dela
+- **Razvrščanje stolpcev tabele** — klik na glavo stolpca tabele "Vse zveze" razvrsti naraščajoče ali padajoče (▲/▼); razvrščanje se ohrani ob hkratnem filtriranju; stolpec `#` prikazuje izvirni kronološki vrstni red
 - **Svetla / temna tema** — gumb ☀️/🌙 v glavi preklopi temo; izbira se ohrani v `localStorage`
 - **Tisk / PDF** — gumb za tiskanje oziroma shranjevanje v PDF neposredno iz brskalnika
 - **Dvojezičnost** — SL / EN preklapljanje brez ponovnega nalaganja datoteke
@@ -63,13 +64,13 @@ Tipične vrednosti iz glave, ki jih aplikacija prebere:
 ### Tehnične podrobnosti
 
 - Ena datoteka HTML, CSS, JavaScript — brez ogrodij, brez strežnika, brez namestitvenih korakov.
-- Zunanja odvisnost: [Chart.js 4.4.1](https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js) (CDN) in Google Fonts (Space Mono, DM Sans). Za offline delovanje je priporočljivo lokalno streženje obeh virov.
+- **Brez internetnih odvisnosti za osnovno delovanje**: Chart.js 4.4.1 je vgrajen neposredno v HTML (offline grafikoni); Google Fonts se nalagajo neblokirno z `<link rel="preload">` vzorcem — brskalniški sistemski font se uporabi kot fallback.
 - Karta Evrope je vgrajena kot SVG poti (Natural Earth podatki) — ne zahteva internetne povezave.
 - Podprti brskalniki: Chrome 99+, Firefox 112+, Edge 99+, Safari 15.4+.
 
 ### Testiranje
 
-Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors` — skupaj 103 testnih primerov v brskalniku, 96 v CLI.
+Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, razvrščanje QSO tabele — skupaj 119 testnih primerov v brskalniku, 122 v CLI.
 
 **V brskalniku** (`tests.html`) — zahteva lokalni strežnik zaradi same-origin politike iframma:
 ```bash
@@ -118,6 +119,7 @@ It is aimed at amateur radio operators who participate in VHF (and UHF) contests
 - **HTML report export** — "Export report (HTML)" button generates a self-contained `.html` file with all charts as embedded PNG images, the map as inline SVG, and tables as static HTML — no JavaScript or external dependencies; suitable for WordPress, email, or archiving
 - **Interactive HTML export** — "Export interactive HTML" button generates a fully interactive `.html` file with QSO data embedded as JSON; all charts, map, animated replay, and QSO filter work without a file reader; suitable for static hosting
 - **QSO table filter** — instant search box above the full QSO table; filters by callsign, locator, or mode
+- **Table column sorting** — click any column header in the "All QSOs" table to sort ascending or descending (▲/▼); sort order is preserved when filtering; the `#` column shows the original chronological index
 - **Light / dark theme** — ☀️/🌙 toggle in the header switches themes; preference is saved in `localStorage`
 - **Print / PDF** — one-click print or browser Save-as-PDF for a complete statistics report
 - **Bilingual UI** — SL / EN switching without re-loading the file
@@ -150,7 +152,7 @@ QSO record columns (0-based): `[0]` date YYMMDD, `[1]` time HHMM, `[2]` callsign
 ### Technical Details
 
 - Single HTML file — CSS and JavaScript included inline. No framework, no server, no installation.
-- External dependency: [Chart.js 4.4.1](https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js) (CDN) and Google Fonts (Space Mono, DM Sans). For offline use, serve both resources locally.
+- **No internet required for core functionality**: Chart.js 4.4.1 is bundled directly in the HTML (offline charts); Google Fonts load non-blocking via `<link rel="preload">` — the browser's system font is used as fallback when offline.
 - The European map is embedded as SVG paths (Natural Earth data) and requires no internet connection.
 - Supported browsers: Chrome 99+, Firefox 112+, Edge 99+, Safari 15.4+.
 
@@ -160,7 +162,7 @@ The application includes a built-in prefix table covering all European DXCC enti
 
 ### Testing
 
-Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors` — 103 test cases in the browser, 96 via CLI.
+Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, QSO table sorting — 119 test cases in the browser, 122 via CLI.
 
 **In the browser** (`tests.html`) — requires a local server due to iframe same-origin policy:
 ```bash

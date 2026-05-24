@@ -308,8 +308,6 @@ document.getElementById('frame').addEventListener('load', function() {
   //  v1.3 — Light theme, filter, interactive export
   // ════════════════════════════════════════════
   group('v1.3 — version & new functions');
-  // APP_VERSION is const — check DOM badge (JS sets it on load)
-  assertEqual(w.document.querySelector('.version-badge').textContent, 'v1.3.1', 'version badge shows v1.3.1');
   assert(typeof w.setTheme === 'function',              'setTheme is a function');
   assert(typeof w.mapThemeColors === 'function',        'mapThemeColors is a function');
   assert(typeof w.filterQsoTable === 'function',        'filterQsoTable is a function');
@@ -335,6 +333,85 @@ document.getElementById('frame').addEventListener('load', function() {
   w.setTheme('dark');
   assert(!w.document.documentElement.classList.contains('light'), 'dark theme removes .light class from <html>');
   assertEqual(w.document.getElementById('btnTheme').textContent, '☀️', 'dark theme button shows sun emoji');
+
+  // ════════════════════════════════════════════
+  //  v1.4 — column sorting
+  // ════════════════════════════════════════════
+  group('v1.4 — version & sorting functions');
+  assertEqual(w.document.querySelector('.version-badge').textContent, 'v1.4', 'version badge shows v1.4');
+  assert(typeof w.sortAllTable  === 'function', 'sortAllTable is a function');
+  assert(typeof w.applyAllTable === 'function', 'applyAllTable is a function');
+  assert(typeof w.buildAllHead  === 'function', 'buildAllHead is a function');
+  assert(typeof w.mkRowAll      === 'function', 'mkRowAll is a function');
+  assert(Array.isArray(w._allQsos),             '_allQsos is an array');
+  assertEqual(typeof w._sortCol, 'string',      '_sortCol is a string');
+  assertEqual(typeof w._sortDir, 'string',      '_sortDir is a string');
+  assertEqual(w._sortCol, 'origIdx',            'default _sortCol is origIdx');
+  assertEqual(w._sortDir, 'asc',                'default _sortDir is asc');
+
+  group('v1.4 — sort state toggle');
+  // inject mock QSOs so applyAllTable has data to work with
+  const mockQsos = [
+    {origIdx:1, call:'DL1ABC', wwl:'JO31NC', dist:450, mode:1, hh:10, mi:0,  dd:3, mm:7, yy:21, timeStr:'10:00', dateStr:'03.07.21'},
+    {origIdx:2, call:'OK1XYZ', wwl:'JN79IO', dist:210, mode:2, hh:11, mi:30, dd:3, mm:7, yy:21, timeStr:'11:30', dateStr:'03.07.21'},
+    {origIdx:3, call:'9A2AA',  wwl:'JN86DM', dist:150, mode:1, hh:9,  mi:15, dd:3, mm:7, yy:21, timeStr:'09:15', dateStr:'03.07.21'},
+  ];
+  w._allQsos = [...mockQsos];
+  w._sortCol = 'origIdx';
+  w._sortDir = 'asc';
+
+  w.sortAllTable('dist');
+  assertEqual(w._sortCol, 'dist', 'first click on dist: _sortCol = dist');
+  assertEqual(w._sortDir, 'asc',  'first click on new col: _sortDir = asc');
+
+  w.sortAllTable('dist');
+  assertEqual(w._sortDir, 'desc', 'second click on same col: toggles to desc');
+
+  w.sortAllTable('dist');
+  assertEqual(w._sortDir, 'asc',  'third click on same col: toggles back to asc');
+
+  w.sortAllTable('call');
+  assertEqual(w._sortCol, 'call', 'click on call: _sortCol changes');
+  assertEqual(w._sortDir, 'asc',  'click on new col always resets to asc');
+
+  group('v1.4 — applyAllTable output');
+  w._allQsos = [...mockQsos];
+  w._sortCol = 'dist';
+  w._sortDir = 'desc';
+  w.applyAllTable();
+  // after sort by dist desc: DL1ABC(450) > OK1XYZ(210) > 9A2AA(150)
+  // _allBodyHtml should contain rows in that order
+  const rows = w._allBodyHtml.split('<tr>').filter(s => s.includes('var(--accent)'));
+  assertEqual(rows.length, 3, 'applyAllTable produces 3 rows for 3 mock QSOs');
+  // check DL1ABC appears before 9A2AA in _allBodyHtml
+  assert(w._allBodyHtml.indexOf('DL1ABC') < w._allBodyHtml.indexOf('9A2AA'),
+    'dist desc: DL1ABC(450km) row before 9A2AA(150km) in _allBodyHtml');
+  assert(w._allBodyHtml.indexOf('OK1XYZ') < w._allBodyHtml.indexOf('9A2AA'),
+    'dist desc: OK1XYZ(210km) row before 9A2AA(150km)');
+
+  w._sortCol = 'call';
+  w._sortDir = 'asc';
+  w.applyAllTable();
+  // call asc: 9A2AA < DL1ABC < OK1XYZ
+  assert(w._allBodyHtml.indexOf('9A2AA') < w._allBodyHtml.indexOf('DL1ABC'),
+    'call asc: 9A2AA before DL1ABC in _allBodyHtml');
+  assert(w._allBodyHtml.indexOf('DL1ABC') < w._allBodyHtml.indexOf('OK1XYZ'),
+    'call asc: DL1ABC before OK1XYZ in _allBodyHtml');
+
+  group('v1.4 — origIdx preserved after sort');
+  w._allQsos = [...mockQsos];
+  w._sortCol = 'dist';
+  w._sortDir = 'asc';
+  w.applyAllTable();
+  // origIdx values in _allBodyHtml should be present (they are in <td> cells)
+  assert(w._allBodyHtml.includes('>1<'), 'origIdx 1 present in sorted output');
+  assert(w._allBodyHtml.includes('>2<'), 'origIdx 2 present in sorted output');
+  assert(w._allBodyHtml.includes('>3<'), 'origIdx 3 present in sorted output');
+
+  // reset state
+  w._allQsos = [];
+  w._sortCol = 'origIdx';
+  w._sortDir = 'asc';
 
   summary();
 });

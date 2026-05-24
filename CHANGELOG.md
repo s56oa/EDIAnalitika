@@ -5,6 +5,25 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.4.0] — 2026-05-24
+
+### Dodano
+- **Offline podpora** — Chart.js 4.4.1 (200 kB) vgrajen neposredno v HTML; grafikoni delujejo brez internetne povezave. Google Fonts se nalagajo z `<link rel="preload">` vzorcem (ne-blokirno); brskalnik sistemski font se uporabi kot fallback, ko ni interneta.
+- **Razvrščanje stolpcev tabele "Vse zveze"** — klik na glavo stolpca razvrsti naraščajoče ali padajoče; ponovni klik obrne smer (▲ / ▼); razvrščanje se ohrani ob hkratnem filtriranju; stolpec `#` prikazuje izvirni kronološki vrstni red
+- **Razvrščanje po datumu/uri** — tiebreaker pri enakem UTC času: prejšnji datum dobi prednost; zagotavlja deterministično zaporedje pri zvezah z istim časovnim žigom
+
+### Popravljeno
+- `applyAllTable()` — razvrščanje po `time`: pri enakem času ure tiebreaker upošteva datum (`(hh*60+mi)*10000000+(yy*10000+mm*100+dd)`); prej so zveze z enakim časom dobile nedeterminirano zaporedje
+- `run_tests.js` — ekstrakcija izvorne kode: zamenjana krhka regex z eksplicitnim `indexOf`; preprečuje napačno ujemanje z `<script>` znotraj predloge za izvoz
+
+### Testi
+- Dodanih 26 novih testnih primerov v `run_tests.js` (skupaj 122): `origIdx` dodelitev, ključi razvrščanja po razdalji / klicnem znaku / načinu / času, tiebreaker za enaki čas, logika preklapljanja smeri razvrščanja
+- Posodobljeni testi verzije na `'1.4'`
+
+[1.4.0]: https://github.com/s56oa/EDIAnalitika/compare/v1.3.1...v1.4
+
+---
+
 ## [1.3.1] — 2026-05-11
 
 ### Popravljeno

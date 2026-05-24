@@ -7,13 +7,13 @@ Status: [ ] = ni implementirano, [x] = implementirano
 
 ## Prioriteta 1 — Uporabnost (UX)
 
-- [ ] **Offline podpora**: Chart.js in Google Fonts lokalno vgrajena ali naložena kot `<link rel="preload">` z offline fallbackom. Trenutno brez interneta aplikacija nima grafov in fontov.
+- [x] **Offline podpora**: Chart.js 4.4.1 vgrajen inline v HTML; Google Fonts naložen z neblokiočnim preload vzorcem. Grafikoni in vmesnik delujejo brez interneta. *(v1.4)*
 
 - [ ] **Povleci več datotek za primerjavo**: Prikaz dveh dnevnikov (npr. dve postaji, isto tekmovanje) z ločenimi barvami na karti in v tabelah. *Zahteva redesign podatkovnega modela.*
 
 - [x] **Filtriranje QSO tabele**: Iskalno polje nad tabelo za filtriranje po klicnem znaku, lokatorju ali načinu dela. *(v1.3)*
 
-- [ ] **Razvrščanje stolpcev tabel**: Klik na glavo stolpca razvrsti tabelo naraščajoče/padajoče.
+- [x] **Razvrščanje stolpcev tabel**: Klik na glavo stolpca razvrsti tabelo naraščajoče/padajoče; razvrščanje se ohrani ob filtriranju; `#` stolpec prikazuje izvirni kronološki indeks. *(v1.4)*
 
 - [ ] **Prikaz statistike po operatorju**: Če dnevnik vsebuje več operatorjev (`MOpe1`), prikaži razčlenitev QSO po vsakem operatorju.
 
@@ -129,8 +129,8 @@ Rezultat: permalink, ki ga je mogoče vgraditi z `<a href>` ali `<iframe>`.
 
 ## Unit testi — ugotovitve
 
-- [x] **Opcija B — Browser testi** (`tests.html`): iframe-based vizualni prikaz, 84 testnih primerov. *(v1.0)*
-- [x] **Node.js CLI runner** (`run_tests.js`): brez strežnika, brez zunanjih odvisnosti. *(v1.0)*
+- [x] **Opcija B — Browser testi** (`tests.html`): iframe-based vizualni prikaz, 119 testnih primerov. *(v1.0)*
+- [x] **Node.js CLI runner** (`run_tests.js`): brez strežnika, brez zunanjih odvisnosti, 122 testnih primerov. *(v1.0)*
 
 Ker je aplikacija ena HTML datoteka brez modularnih izvozov, direktni unit testi z orodji kot je Jest niso takoj možni. Opcije:
 
