@@ -29,6 +29,8 @@ Everything lives in a single HTML file, divided into clearly delimited JS sectio
 
 ```
 File drop/pick → handleFile() → parseEDI() → render() → [charts + map + tables]
+                                           ↘ saveLogToStorage(text, name, meta)
+LocalStorage → loadStoredLog(i) → parseEDI() → render()
 ```
 
 1. **`parseEDI(text)`** — splits on `[QSORecords` section; each semicolon-delimited line becomes a `qso` object `{call, mode, wwl, dist, hh, mi, dd, mm, yy, ...}`. Header key=value pairs go into `header{}`. Mode integers: 1=SSB, 2=CW, 3=FM.
@@ -59,6 +61,11 @@ File drop/pick → handleFile() → parseEDI() → render() → [charts + map + 
 | `_mapQsosData`, `_mapHomeLocStr`, `_mapColorMode` | Map render state |
 | `_vx, _vy, _vz` | SVG map pan/zoom |
 | `_workedBounds` | Bounding box of worked locators for auto-fit |
+| `_allQsos`, `_sortCol`, `_sortDir`, `_allBodyHtml` | All-QSOs table sort/filter state (`var`, not `let`, so accessible via `window` in tests) |
+
+### LocalStorage persistence (v1.6)
+
+Key `ediLogHistory` holds a JSON array of up to `MAX_LOGS=5` entries `{text, name, time, call, contest}`. Entries older than `LOG_MAX_AGE_DAYS=30` are cleaned on each `saveLogToStorage()` call. `saveLogToStorage(ediText, fileName, meta?)` accepts an optional `meta={call, contest}` to avoid re-parsing the EDI text when the caller already has a parsed header.
 
 ## EDI format notes
 

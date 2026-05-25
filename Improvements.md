@@ -3,7 +3,7 @@
 Vse ideje za prihodnje verzije aplikacije EDI Log Analitika.  
 Status: `[ ]` = ni implementirano, `[x]` = implementirano, `[~]` = delno implementirano
 
-Zadnja analiza: v1.5 (2026-05-25)
+Zadnja analiza: v1.6 (2026-05-25)
 
 ---
 
@@ -86,7 +86,7 @@ Težave, ki postanejo opazne pri večjih dnevnikih (500+ QSO) ali daljši seji.
 
 ## Prioriteta 5 — Izvozi
 
-- [ ] **CSV izvoz** — prenos celotne QSO tabele kot `.csv` za nadaljnjo analizo v Excelu / LibreOffice.
+- [x] **CSV izvoz** — gumb "Izvozi CSV" prenese celotno QSO tabelo kot `.csv` z UTF-8 BOM; semicolon-ločena; stolpci: `#`, `Date`, `Time (UTC)`, `Callsign`, `Mode`, `Locator`, `Distance (km)`, `Azimuth (°)`; azimut izračunan iz domačega lokatorja. *(v1.6)*
 
 - [ ] **Izvoz karte kot SVG** — poleg PNG omogoči izvoz lokatorske karte v vektorskem SVG formatu.
 
@@ -156,11 +156,11 @@ Arhitekturne pomanjkljivosti brez takojšnjega vidnega učinka, ki otežujejo vz
 
 ## Unit testi — stanje
 
-- [x] **Browser testi** (`tests.html`): iframe-based vizualni prikaz, ~134 testnih primerov. *(v1.0)*
-- [x] **Node.js CLI runner** (`run_tests.js`): 149 testnih primerov, brez strežnika ali zunanjih odvisnosti. *(v1.0)*
+- [x] **Browser testi** (`tests.html`): iframe-based vizualni prikaz, ~159 testnih primerov. *(v1.0)*
+- [x] **Node.js CLI runner** (`run_tests.js`): 178 testnih primerov, brez strežnika ali zunanjih odvisnosti. *(v1.0)*
 
 ### Pokrite funkcije
-`escapeHTML`, `modeName`, `modeClass`, `locToLatLon` (6-znakoven, 4-znakoven, 5-znakoven, 7+-znakoven, neveljavni znaki), `haversine`, `bearing`, `getCountry` (36 evropskih entitet + portable pripone), `parseEDI` (header, QSO zapisi, validacija datuma, validacija načina dela, opozorila), `mapThemeColors`, `APP_VERSION`, razvrščanje QSO tabele (`origIdx`, dist, call, mode, time + tiebreaker, toggle logika).
+`escapeHTML`, `modeName`, `modeClass`, `locToLatLon` (6-znakoven, 4-znakoven, 5-znakoven, 7+-znakoven, neveljavni znaki), `haversine`, `bearing`, `getCountry` (36 evropskih entitet + portable pripone), `parseEDI` (header, QSO zapisi, validacija datuma, validacija načina dela, opozorila), `mapThemeColors`, `APP_VERSION`, razvrščanje QSO tabele (`origIdx`, dist, call, mode, time + tiebreaker, toggle logika), `exportCSV` (null guard za lokator, azimut), `formatLogTime` (mejne vrednosti), `getLogHistory` / `setLogHistory` / `cleanOldLogs` / `saveLogToStorage` / `clearStoredLog` (LocalStorage persistence, Array.isArray guard, deduplikacija, 30-dnevni cutoff).
 
 ### Nepokrite funkcije (priložnosti)
 - `render()` — kompleksna DOM funkcija; zahteva browser okolje

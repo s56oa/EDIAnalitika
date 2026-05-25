@@ -5,6 +5,36 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.6.0] — 2026-05-25
+
+### Dodano
+- **Izvoz CSV** — gumb "Izvozi CSV" prenese celotno QSO tabelo kot `.csv` z UTF-8 BOM; semicolon-ločena; stolpci: `#`, `Date`, `Time (UTC)`, `Callsign`, `Mode`, `Locator`, `Distance (km)`, `Azimuth (°)`; azimut izračunan iz domačega lokatorja
+- **Shranjevanje dnevnika (LocalStorage)** — zadnjih 5 naloženih dnevnikov se avtomatsko shrani; gumbi "Nadaljuj z zadnjim dnevnikom" omogočajo takojšen ponovni dostop brez ponovnega nalaganja datoteke; samodejno čiščenje po 30 dneh; deduplikacija po imenu datoteke
+- **`confirmOverwrite()`** — potrditveni dialog pred prepisovanjem obstoječega shranjenega dnevnika z istim imenom datoteke
+- **`formatLogTime(ts)`** — formatira timestamp v `DD.MM.YYYY HH:MM` za prikaz v seznamu zgodovine
+
+### Popravljeno
+- **`exportCSV()`** — manjkajoč `return` v `map` callbacku; QSO vrstice so bile `undefined` → CSV je vseboval le glavo tabele
+- **`resetApp()`** — klik na "↩ Nov dnevnik" je po pomoti brisal celotno zgodovino dnevnikov; zdaj le posodobi gumbe brez brisanja
+- **`exportHTMLInteractive()`** — `exportCSV` ni bil vključen v seznam serializiranih funkcij; izvožena datoteka ni imela delujočega CSV gumba
+- **`loadStoredLog()`** — `warnBox` ni bil vedno očiščen pred novim prikazom opozoril iz shranjenega dnevnika
+- **`getLogHistory()`** — `JSON.parse("null")` vrne `null`, ne polje; dodan `Array.isArray()` guard prepreči zrušitev pri poškodovanih podatkih
+- Statična HTML značka različice v glavi (`v1.5`) posodobljena na `v1.6`
+
+### Izboljšano
+- **`saveLogToStorage(ediText, fileName, meta?)`** — neobvezni `meta` parameter `{call, contest}` preprečuje dvojni klic `parseEDI()`; klicatelji (`handleFile`, `loadStoredLog`) posredujejo že parsiran header
+- **`confirmOverwrite()`** — sporočilo premaknjeno iz direktne `_lang` primerjave v `STRINGS` objekt (`confirmOverwriteMsg` s placeholderji `{file}`, `{call}`, `{time}`) za doslednost z i18n sistemom
+- **`extractFn()` v `run_tests.js`** — zamenjava krhke `[\s\S]*?\n\}` regex ekstrakcije z brace-counting ekstraktorjem; pravilno preskakuje string, template in regex literale (vključno z `"` v regex character classih kot `/[..."<>|]/`)
+
+### Testi
+- 178 testnih primerov v CLI (`run_tests.js`), ~159 v brskalniku (`tests.html`)
+- Dodane nove testne skupine: `v1.6 — new functions (typeof)` (10 funkcij), `v1.6 — formatLogTime` (4 primeri z mejnimi vrednostmi), `v1.6 — storage helpers` (11 testov z realnim localStorage v brskalniku; 9 testov z mock localStorage v Node.js)
+- Storage testi shranijo in obnovijo originalno vrednost `ediLogHistory` — testni tek ne uniči shranjenih dnevnikov
+
+[1.6.0]: https://github.com/s56oa/EDIAnalitika/compare/v1.5...v1.6
+
+---
+
 ## [1.5.0] — 2026-05-25
 
 ### Dodano

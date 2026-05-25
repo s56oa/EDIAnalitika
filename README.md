@@ -32,6 +32,8 @@ Namenjena je radioamaterjem, ki tekmujejo v VHF (in UHF) tekmovanjih, kjer se za
 - **Izvoz PNG** — vsak grafikon in karta se izvozi kot PNG slika z imenom postaje
 - **Izvoz poročila v HTML** — gumb "Izvozi poročilo (HTML)" ustvari samostojno `.html` datoteko z vsemi grafikoni kot vgrajenimi PNG slikami, karto kot inline SVG in tabelami kot statičen HTML brez JavaScript ali zunanjih odvisnosti; primerno za WordPress, e-pošto ali arhiviranje
 - **Izvoz interaktivnega HTML** — gumb "Izvozi interaktivni HTML" ustvari polno interaktivno `.html` datoteko z vgrajenimi QSO podatki (JSON); vsi grafikoni, karta, animacija in filter so funkcionalni; primerno za gostovanje na statičnih straneh
+- **Izvoz CSV** — gumb "Izvozi CSV" prenese celotno QSO tabelo kot `.csv` datoteko z UTF-8 BOM; semicolon-ločena; stolpci: `#`, `Date`, `Time (UTC)`, `Callsign`, `Mode`, `Locator`, `Distance (km)`, `Azimuth (°)`
+- **Shranjevanje dnevnika** — zadnjih 5 naloženih dnevnikov se avtomatsko shrani v `localStorage`; gumbi "Nadaljuj z zadnjim dnevnikom" omogočajo takojšen ponovni dostop brez ponovnega nalaganja datoteke; vnosi se samodejno počistijo po 30 dneh
 - **Filter tabele QSO** — iskalno polje za takojšnje filtriranje tabele vseh zvez po klicnem znaku, lokatorju ali načinu dela
 - **Razvrščanje stolpcev tabele** — klik na glavo stolpca tabele "Vse zveze" razvrsti naraščajoče ali padajoče (▲/▼); razvrščanje se ohrani ob hkratnem filtriranju; stolpec `#` prikazuje izvirni kronološki vrstni red
 - **Validacija EDI datoteke** — `parseEDI()` preverja format in obseg datuma (YYMMDD) ter veljavnost načina dela (1/2/3); neveljavni QSO se preskoči ali popravi; opozorila z vrstico in vzrokom se prikažejo v oranžnem panelu pod metrikami
@@ -72,7 +74,7 @@ Tipične vrednosti iz glave, ki jih aplikacija prebere:
 
 ### Testiranje
 
-Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, razvrščanje QSO tabele — skupaj ~134 testnih primerov v brskalniku, 149 v CLI.
+Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, `exportCSV`, `formatLogTime`, `getLogHistory`, `saveLogToStorage`, `clearStoredLog`, razvrščanje QSO tabele — skupaj ~159 testnih primerov v brskalniku, 178 v CLI.
 
 **V brskalniku** (`tests.html`) — zahteva lokalni strežnik zaradi same-origin politike iframma:
 ```bash
@@ -120,6 +122,8 @@ It is aimed at amateur radio operators who participate in VHF (and UHF) contests
 - **PNG export** — each chart and the map can be saved as a PNG image named after the station callsign
 - **HTML report export** — "Export report (HTML)" button generates a self-contained `.html` file with all charts as embedded PNG images, the map as inline SVG, and tables as static HTML — no JavaScript or external dependencies; suitable for WordPress, email, or archiving
 - **Interactive HTML export** — "Export interactive HTML" button generates a fully interactive `.html` file with QSO data embedded as JSON; all charts, map, animated replay, and QSO filter work without a file reader; suitable for static hosting
+- **CSV export** — "Export CSV" button downloads the full QSO table as a `.csv` file with UTF-8 BOM; semicolon-delimited; columns: `#`, `Date`, `Time (UTC)`, `Callsign`, `Mode`, `Locator`, `Distance (km)`, `Azimuth (°)`
+- **Log history** — last 5 loaded logs are saved automatically to `localStorage`; "Resume last log" buttons allow instant reload without re-selecting the file; entries expire after 30 days
 - **QSO table filter** — instant search box above the full QSO table; filters by callsign, locator, or mode
 - **Table column sorting** — click any column header in the "All QSOs" table to sort ascending or descending (▲/▼); sort order is preserved when filtering; the `#` column shows the original chronological index
 - **EDI validation** — `parseEDI()` checks date format and range (YYMMDD) and operating mode (1/2/3); invalid QSOs are skipped or corrected; warnings with line number and reason are shown in an amber panel below the metrics
@@ -166,7 +170,7 @@ The application includes a built-in prefix table covering all European DXCC enti
 
 ### Testing
 
-Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, QSO table sorting — ~134 test cases in the browser, 149 via CLI.
+Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, `exportCSV`, `formatLogTime`, `getLogHistory`, `saveLogToStorage`, `clearStoredLog`, QSO table sorting — ~159 test cases in the browser, 178 via CLI.
 
 **In the browser** (`tests.html`) — requires a local server due to iframe same-origin policy:
 ```bash

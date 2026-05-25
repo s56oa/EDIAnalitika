@@ -9,18 +9,66 @@ const chartjsClose = html.indexOf('</script>');
 const appOpen = html.indexOf('<script>', chartjsClose);
 const src = html.slice(appOpen + '<script>'.length, html.lastIndexOf('</script>'));
 
+// Brace-counting extractor: handles string, template, and regex literals so
+// a } inside any of them never terminates the match early.
+function extractFn(s, name) {
+  const marker = `\nfunction ${name}(`;
+  const si = s.indexOf(marker);
+  if(si < 0) throw new Error(`function ${name} not found in source`);
+  let depth = 0, i = si, inStr = false, strCh = '';
+  for(; i < s.length; i++){
+    const c = s[i];
+    if(inStr){ if(c === strCh && s[i-1] !== '\\') inStr = false; continue; }
+    if(c === '"' || c === "'"){ inStr = true; strCh = c; continue; }
+    if(c === '`'){
+      i++;
+      while(i < s.length){ if(s[i] === '\\') i++; else if(s[i] === '`') break; i++; }
+      continue;
+    }
+    // regex literal: / not preceded by word char, ), or ]
+    if(c === '/' && !/[\w)\]]/.test(s[i-1])){
+      i++;
+      while(i < s.length){
+        if(s[i] === '\\') { i++; }
+        else if(s[i] === '['){
+          i++;
+          while(i < s.length){ if(s[i] === '\\') i++; else if(s[i] === ']') break; i++; }
+        }
+        else if(s[i] === '/') break;
+        i++;
+      }
+      continue;
+    }
+    if(c === '{') depth++;
+    else if(c === '}'){ depth--; if(depth === 0) return s.substring(si+1, i+1); }
+  }
+  throw new Error(`function ${name}: unbalanced braces`);
+}
+
+const pfxConst = src.match(/const PFX = \[[\s\S]*?\];/)[0];
+
 const blocks = [
-  src.match(/function escapeHTML[\s\S]*?\}/)[0],
-  src.match(/function modeName[\s\S]*?\}/)[0],
-  src.match(/function modeClass[\s\S]*?\}/)[0],
-  src.match(/function locToLatLon[\s\S]*?\n\}/)[0],
-  src.match(/function bearing[\s\S]*?\n\}/)[0],
-  src.match(/function haversine[\s\S]*?\n\}/)[0],
-  src.match(/const PFX = \[[\s\S]*?\];[\s\S]*?function getCountry[\s\S]*?\n\}/)[0],
-  src.match(/function parseEDI[\s\S]*?\n\}/)[0],
+  extractFn(src, 'escapeHTML'),
+  extractFn(src, 'modeName'),
+  extractFn(src, 'modeClass'),
+  extractFn(src, 'locToLatLon'),
+  extractFn(src, 'bearing'),
+  extractFn(src, 'haversine'),
+  pfxConst + '\n' + extractFn(src, 'getCountry'),
+  extractFn(src, 'parseEDI'),
+  extractFn(src, 'exportCSV'),
+  extractFn(src, 'getLogHistory'),
+  extractFn(src, 'setLogHistory'),
+  extractFn(src, 'cleanOldLogs'),
+  extractFn(src, 'formatLogTime'),
+  extractFn(src, 'saveLogToStorage'),
+  extractFn(src, 'clearStoredLog'),
+  extractFn(src, 'loadStoredLog'),
+  extractFn(src, 'updateResumeButtons'),
+  extractFn(src, 'confirmOverwrite'),
 ].join('\n');
-const {escapeHTML, modeName, modeClass, locToLatLon, bearing, haversine, getCountry, parseEDI} =
-  new Function(blocks + '\nreturn {escapeHTML,modeName,modeClass,locToLatLon,bearing,haversine,getCountry,parseEDI}')();
+const {escapeHTML, modeName, modeClass, locToLatLon, bearing, haversine, getCountry, parseEDI, exportCSV, getLogHistory, setLogHistory, cleanOldLogs, formatLogTime, saveLogToStorage, clearStoredLog, loadStoredLog, updateResumeButtons, confirmOverwrite} =
+  new Function(blocks + '\nreturn {escapeHTML,modeName,modeClass,locToLatLon,bearing,haversine,getCountry,parseEDI,exportCSV,getLogHistory,setLogHistory,cleanOldLogs,formatLogTime,saveLogToStorage,clearStoredLog,loadStoredLog,updateResumeButtons,confirmOverwrite}')();
 
 // ── Test framework ──────────────────────────────────────────────
 let pass = 0, fail = 0;
@@ -243,9 +291,9 @@ assertEqual(mixedP.warnings.length, 1, 'mixed: 1 warning for skipped QSO');
 // ════════════════════════════════════════════
 group('APP_VERSION & mapThemeColors');
 const vMatch = src.match(/const APP_VERSION\s*=\s*'([^']+)'/);
-assertEqual(vMatch ? vMatch[1] : null, '1.5', 'APP_VERSION constant is "1.5"');
+assertEqual(vMatch ? vMatch[1] : null, '1.6', 'APP_VERSION constant is "1.6"');
 
-const mapThemeSrc = src.match(/function mapThemeColors\b[\s\S]*?\n\}/)[0];
+const mapThemeSrc = extractFn(src, 'mapThemeColors');
 const {mapThemeColors: mtcDark}  = new Function(`let _theme='dark';\n${mapThemeSrc}\nreturn {mapThemeColors};`)();
 const {mapThemeColors: mtcLight} = new Function(`let _theme='light';\n${mapThemeSrc}\nreturn {mapThemeColors};`)();
 const dkC = mtcDark();
@@ -337,6 +385,116 @@ assertEqual(sortDir, 'asc',  'toggle: same col flips back to asc');
 simulateSortAllTable('call');
 assertEqual(sortCol, 'call', 'toggle: different col changes _sortCol');
 assertEqual(sortDir, 'asc',  'toggle: different col resets to asc');
+
+// ════════════════════════════════════════════
+//  v1.6 — CSV export + LocalStorage helpers
+// ════════════════════════════════════════════
+group('v1.6 — new exports & storage');
+assert(typeof exportCSV === 'function', 'exportCSV is a function');
+assert(typeof getLogHistory === 'function', 'getLogHistory is a function');
+assert(typeof setLogHistory === 'function', 'setLogHistory is a function');
+assert(typeof cleanOldLogs === 'function', 'cleanOldLogs is a function');
+assert(typeof formatLogTime === 'function', 'formatLogTime is a function');
+assert(typeof saveLogToStorage === 'function', 'saveLogToStorage is a function');
+assert(typeof clearStoredLog === 'function', 'clearStoredLog is a function');
+assert(typeof loadStoredLog === 'function', 'loadStoredLog is a function');
+assert(typeof updateResumeButtons === 'function', 'updateResumeButtons is a function');
+assert(typeof confirmOverwrite === 'function', 'confirmOverwrite is a function');
+
+// formatLogTime — basic and edge cases
+const testTs = new Date(2024, 6, 15, 14, 30).getTime(); // 15.07.2024 14:30
+assertEqual(formatLogTime(testTs), '15.07.2024 14:30', 'formatLogTime: mid-year timestamp');
+assertEqual(formatLogTime(new Date(2024,  0,  1,  0,  0).getTime()), '01.01.2024 00:00', 'formatLogTime: midnight Jan 1 zero-pads');
+assertEqual(formatLogTime(new Date(2024, 11, 31, 23, 59).getTime()), '31.12.2024 23:59', 'formatLogTime: Dec 31 23:59');
+assertEqual(formatLogTime(new Date(2000,  2,  5,  8,  7).getTime()), '05.03.2000 08:07', 'formatLogTime: zero-pads all fields');
+
+// ════════════════════════════════════════════
+//  v1.6 — storage helpers (mocked localStorage)
+// ════════════════════════════════════════════
+group('v1.6 — storage helpers (mocked localStorage)');
+{
+  const _lsMock = `
+    const _lsStore = {};
+    const localStorage = {
+      getItem:    k     => (_lsStore[k] !== undefined ? _lsStore[k] : null),
+      setItem:    (k,v) => { _lsStore[k] = String(v); },
+      removeItem: k     => { delete _lsStore[k]; }
+    };
+    const LOG_HISTORY_KEY = 'ediLogHistory';
+    const MAX_LOGS = 5;
+    const LOG_MAX_AGE_DAYS = 30;
+    function parseEDI(){ return {header:{pcall:'S56OA',tname:'VHF'}, qsos:[], warnings:[]}; }
+    function updateResumeButtons(){}
+  `;
+  const _storageSrc = [
+    extractFn(src, 'getLogHistory'),
+    extractFn(src, 'setLogHistory'),
+    extractFn(src, 'cleanOldLogs'),
+    extractFn(src, 'saveLogToStorage'),
+    extractFn(src, 'clearStoredLog'),
+  ].join('\n');
+  const mk = () => new Function(_lsMock + _storageSrc +
+    '\nreturn {getLogHistory,setLogHistory,cleanOldLogs,saveLogToStorage,clearStoredLog};')();
+  const mkWith = init => new Function(
+    `const _lsStore = ${JSON.stringify(init)};\n` +
+    `const localStorage={getItem:k=>(_lsStore[k]!==undefined?_lsStore[k]:null),setItem:(k,v)=>{_lsStore[k]=String(v);},removeItem:k=>{delete _lsStore[k];}};\n` +
+    `const LOG_HISTORY_KEY='ediLogHistory';const MAX_LOGS=5;const LOG_MAX_AGE_DAYS=30;\n` +
+    `function parseEDI(){return {header:{pcall:'S56OA',tname:'VHF'},qsos:[],warnings:[]};}\n` +
+    `function updateResumeButtons(){}\n` +
+    _storageSrc +
+    '\nreturn {getLogHistory,setLogHistory,cleanOldLogs,saveLogToStorage,clearStoredLog};')();
+
+  assert(Array.isArray(mk().getLogHistory()), 'getLogHistory: empty store → array');
+  assertEqual(mk().getLogHistory().length, 0, 'getLogHistory: empty store → length 0');
+
+  { const s = mk();
+    s.setLogHistory([{text:'X', name:'a.edi', time:1e9, call:'S56OA', contest:'VHF'}]);
+    const h = s.getLogHistory();
+    assertEqual(h.length, 1, 'setLogHistory/getLogHistory: round-trip length');
+    assertEqual(h[0].call, 'S56OA', 'setLogHistory/getLogHistory: round-trip call'); }
+
+  { const s = mk();
+    s.setLogHistory(Array.from({length:8}, (_,i) => ({text:'T',name:`f${i}.edi`,time:i,call:`C${i}`,contest:''})));
+    assertEqual(s.getLogHistory().length, 5, 'setLogHistory: truncates to MAX_LOGS=5'); }
+
+  { const s = mkWith({'ediLogHistory': 'NOTJSON{{{'});
+    const h = s.getLogHistory();
+    assert(Array.isArray(h), 'getLogHistory: corrupted JSON → array');
+    assertEqual(h.length, 0, 'getLogHistory: corrupted JSON → length 0'); }
+
+  { const s = mkWith({'ediLogHistory': 'null'});
+    const h = s.getLogHistory();
+    assert(Array.isArray(h), 'getLogHistory: JSON "null" → array (Array.isArray guard)');
+    assertEqual(h.length, 0, 'getLogHistory: JSON "null" → length 0'); }
+
+  { const s = mk();
+    const oldTs   = Date.now() - 31 * 24 * 60 * 60 * 1000;
+    const freshTs = Date.now() - 1000;
+    s.setLogHistory([
+      {text:'T', name:'old.edi', time: oldTs,   call:'OLD', contest:''},
+      {text:'T', name:'new.edi', time: freshTs,  call:'NEW', contest:''},
+    ]);
+    const h = s.cleanOldLogs();
+    assertEqual(h.length, 1, 'cleanOldLogs: removes entries > 30 days old');
+    assertEqual(h[0].call, 'NEW', 'cleanOldLogs: retains fresh entry'); }
+
+  { const s = mk();
+    s.saveLogToStorage('EDI1', 'test.edi');
+    s.saveLogToStorage('EDI2', 'test.edi');
+    assertEqual(s.getLogHistory().length, 1, 'saveLogToStorage: deduplicates same file name'); }
+
+  { const s = mk();
+    s.saveLogToStorage('EDI1', 'first.edi');
+    s.saveLogToStorage('EDI2', 'second.edi');
+    const h = s.getLogHistory();
+    assertEqual(h[0].name, 'second.edi', 'saveLogToStorage: most recent is first');
+    assertEqual(h[1].name, 'first.edi',  'saveLogToStorage: older entry is second'); }
+
+  { const s = mk();
+    s.saveLogToStorage('EDI', 'test.edi');
+    s.clearStoredLog();
+    assertEqual(s.getLogHistory().length, 0, 'clearStoredLog: empties history'); }
+}
 
 // ════════════════════════════════════════════
 console.log('\n══════════════════════════════════════');

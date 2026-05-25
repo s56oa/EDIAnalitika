@@ -118,8 +118,11 @@ document.getElementById('frame').addEventListener('load', function() {
   if (missing.length) {
     _out.innerHTML = `<div style="color:var(--fail)">Cannot access functions: ${missing.join(', ')}<br>
       Try serving via: <code>python3 -m http.server 8080</code></div>`;
+    summary();
     return;
   }
+
+  try {
 
   // ════════════════════════════════════════════
   //  escapeHTML
@@ -171,7 +174,9 @@ document.getElementById('frame').addEventListener('load', function() {
   assertNull(w.locToLatLon(''),     'empty string returns null');
   assertNull(w.locToLatLon('ZZZZZZ'), 'invalid field chars (Z not in A-R) returns null');
   assertNull(w.locToLatLon('JN75FY'), 'invalid 6th char (Y not in A-X) returns null');
-  assertNull(w.locToLatLon('JN75S'), '5-char locator (non-standard) returns null');
+  assertNull(w.locToLatLon('JN75S'),   '5-char locator (non-standard) returns null');
+  assertNull(w.locToLatLon('JN75FOP'), '7-char locator with trailing garbage → null');
+  assertNull(w.locToLatLon('JN75FOPP'),'8-char locator → null');
   // Lowercase input
   const lower = w.locToLatLon('jn75fo');
   assert(lower !== null, 'lowercase locator accepted');
@@ -380,7 +385,7 @@ document.getElementById('frame').addEventListener('load', function() {
   //  v1.4 — column sorting
   // ════════════════════════════════════════════
   group('v1.4 — version & sorting functions');
-  assertEqual(w.document.querySelector('.version-badge').textContent, 'v1.4', 'version badge shows v1.4');
+  assertEqual(w.document.querySelector('.version-badge').textContent, 'v1.6', 'version badge shows v1.6');
   assert(typeof w.sortAllTable  === 'function', 'sortAllTable is a function');
   assert(typeof w.applyAllTable === 'function', 'applyAllTable is a function');
   assert(typeof w.buildAllHead  === 'function', 'buildAllHead is a function');
@@ -454,6 +459,85 @@ document.getElementById('frame').addEventListener('load', function() {
   w._allQsos = [];
   w._sortCol = 'origIdx';
   w._sortDir = 'asc';
+
+  // ════════════════════════════════════════════
+  //  v1.6 — CSV export + LocalStorage
+  // ════════════════════════════════════════════
+  group('v1.6 — new functions (typeof)');
+  assert(typeof w.exportCSV          === 'function', 'exportCSV is a function');
+  assert(typeof w.getLogHistory      === 'function', 'getLogHistory is a function');
+  assert(typeof w.setLogHistory      === 'function', 'setLogHistory is a function');
+  assert(typeof w.cleanOldLogs       === 'function', 'cleanOldLogs is a function');
+  assert(typeof w.formatLogTime      === 'function', 'formatLogTime is a function');
+  assert(typeof w.saveLogToStorage   === 'function', 'saveLogToStorage is a function');
+  assert(typeof w.clearStoredLog     === 'function', 'clearStoredLog is a function');
+  assert(typeof w.loadStoredLog      === 'function', 'loadStoredLog is a function');
+  assert(typeof w.updateResumeButtons=== 'function', 'updateResumeButtons is a function');
+  assert(typeof w.confirmOverwrite   === 'function', 'confirmOverwrite is a function');
+
+  group('v1.6 — formatLogTime');
+  assertEqual(w.formatLogTime(new Date(2024,  6, 15, 14, 30).getTime()), '15.07.2024 14:30', 'mid-year timestamp');
+  assertEqual(w.formatLogTime(new Date(2024,  0,  1,  0,  0).getTime()), '01.01.2024 00:00', 'midnight Jan 1 zero-pads');
+  assertEqual(w.formatLogTime(new Date(2024, 11, 31, 23, 59).getTime()), '31.12.2024 23:59', 'Dec 31 23:59');
+  assertEqual(w.formatLogTime(new Date(2000,  2,  5,  8,  7).getTime()), '05.03.2000 08:07', 'zero-pads all fields');
+
+  group('v1.6 — storage helpers (real localStorage)');
+  // Save existing history so tests don't destroy user data
+  const _savedHistory = w.localStorage.getItem('ediLogHistory');
+  w.clearStoredLog();
+
+  assert(Array.isArray(w.getLogHistory()), 'getLogHistory: empty store → array');
+  assertEqual(w.getLogHistory().length, 0, 'getLogHistory: empty store → length 0');
+
+  w.setLogHistory([{text:'X', name:'a.edi', time:1e9, call:'S56OA', contest:'VHF'}]);
+  assertEqual(w.getLogHistory().length, 1, 'setLogHistory/getLogHistory: round-trip length');
+  assertEqual(w.getLogHistory()[0].call, 'S56OA', 'setLogHistory/getLogHistory: round-trip call');
+
+  w.setLogHistory(Array.from({length:8}, (_,i) => ({text:'T',name:`f${i}.edi`,time:i,call:`C${i}`,contest:''})));
+  assertEqual(w.getLogHistory().length, 5, 'setLogHistory: truncates to MAX_LOGS=5');
+
+  w.localStorage.setItem('ediLogHistory', 'null');
+  const _nullHist = w.getLogHistory();
+  assert(Array.isArray(_nullHist), 'getLogHistory: JSON "null" → array (Array.isArray guard)');
+  assertEqual(_nullHist.length, 0, 'getLogHistory: JSON "null" → length 0');
+
+  w.localStorage.setItem('ediLogHistory', 'NOTJSON{{{');
+  const _badHist = w.getLogHistory();
+  assert(Array.isArray(_badHist), 'getLogHistory: corrupted JSON → array');
+  assertEqual(_badHist.length, 0, 'getLogHistory: corrupted JSON → length 0');
+
+  w.clearStoredLog();
+  const _oldTs   = Date.now() - 31 * 24 * 60 * 60 * 1000;
+  const _freshTs = Date.now() - 1000;
+  w.setLogHistory([
+    {text:'T', name:'old.edi', time: _oldTs,   call:'OLD', contest:''},
+    {text:'T', name:'new.edi', time: _freshTs,  call:'NEW', contest:''},
+  ]);
+  const _cleaned = w.cleanOldLogs();
+  assertEqual(_cleaned.length, 1, 'cleanOldLogs: removes entries > 30 days old');
+  assertEqual(_cleaned[0].call, 'NEW', 'cleanOldLogs: retains fresh entry');
+
+  w.clearStoredLog();
+  w.saveLogToStorage('EDI1', 'first.edi');
+  w.saveLogToStorage('EDI2', 'second.edi');
+  w.saveLogToStorage('EDI3', 'first.edi'); // same name → replaces + moves to front
+  const _hist = w.getLogHistory();
+  assertEqual(_hist.length, 2, 'saveLogToStorage: deduplicates same file name');
+  assertEqual(_hist[0].name, 'first.edi',  'saveLogToStorage: re-saved entry moves to front');
+  assertEqual(_hist[1].name, 'second.edi', 'saveLogToStorage: older entry pushed back');
+
+  w.clearStoredLog();
+  assertEqual(w.getLogHistory().length, 0, 'clearStoredLog: empties history');
+
+  // Restore user's original history
+  if (_savedHistory !== null) w.localStorage.setItem('ediLogHistory', _savedHistory);
+  else w.localStorage.removeItem('ediLogHistory');
+  w.updateResumeButtons();
+
+  } catch(e) {
+    group('⚠ RUNTIME ERROR');
+    assert(false, e.message, e.stack || '');
+  }
 
   summary();
 });
