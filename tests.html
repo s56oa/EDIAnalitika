@@ -167,13 +167,21 @@ document.getElementById('frame').addEventListener('load', function() {
   assert(io91vl !== null, 'IO91VL returns a result');
   assertClose(io91vl?.lat, 51.48, 0.1, 'IO91VL latitude ≈ 51.5°N (London)');
   // Edge cases
-  assertNull(w.locToLatLon('JN'),   'too-short locator returns null');
+  assertNull(w.locToLatLon('JN'),   'too-short locator (2 chars) returns null');
   assertNull(w.locToLatLon(''),     'empty string returns null');
-  assertNull(w.locToLatLon('ZZZZZZ'), 'NaN locator returns null');
+  assertNull(w.locToLatLon('ZZZZZZ'), 'invalid field chars (Z not in A-R) returns null');
+  assertNull(w.locToLatLon('JN75FY'), 'invalid 6th char (Y not in A-X) returns null');
+  assertNull(w.locToLatLon('JN75S'), '5-char locator (non-standard) returns null');
   // Lowercase input
   const lower = w.locToLatLon('jn75fo');
   assert(lower !== null, 'lowercase locator accepted');
   assertClose(lower?.lat, 45.60, 0.1, 'lowercase gives same lat as uppercase');
+  // 4-char locator — center of square
+  const jn75mm = w.locToLatLon('JN75MM');
+  const jn75_4 = w.locToLatLon('JN75');
+  assert(jn75_4 !== null, '4-char locator JN75 → not null (center of square)');
+  assertClose(jn75_4?.lat, jn75mm?.lat, 0.001, '4-char JN75 lat = center of JN75MM');
+  assertClose(jn75_4?.lon, jn75mm?.lon, 0.001, '4-char JN75 lon = center of JN75MM');
 
   // ════════════════════════════════════════════
   //  haversine — great-circle distance
@@ -303,6 +311,40 @@ document.getElementById('frame').addEventListener('load', function() {
 
   const noCount = '[REG1TEST;1]\nPCall=S56OA\n[QSORecords]\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n';
   assertEqual(w.parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed correctly');
+
+  // ════════════════════════════════════════════
+  //  parseEDI — validation & warnings (v1.5)
+  // ════════════════════════════════════════════
+  group('parseEDI — validation & warnings');
+  assert(Array.isArray(w.parseEDI('').warnings), 'parseEDI returns warnings array');
+  assertEqual(w.parseEDI('').warnings.length, 0, 'empty input → 0 warnings');
+  assert(Array.isArray(parsed.warnings), 'valid EDI → warnings array present');
+  assertEqual(parsed.warnings.length, 0, 'valid EDI → 0 warnings');
+
+  // Invalid date — month out of range
+  const badMonth = w.parseEDI('[QSORecords;1]\n211399;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n');
+  assertEqual(badMonth.qsos.length, 0, 'invalid date (month 13) → QSO skipped');
+  assertEqual(badMonth.warnings.length, 1, 'invalid date (month 13) → 1 warning');
+  assertEqual(badMonth.warnings[0].type, 'date', 'invalid date → warning.type = "date"');
+  assertEqual(badMonth.warnings[0].raw, '211399', 'invalid date → warning.raw carries raw value');
+
+  // Invalid date — non-numeric
+  const badFmt = w.parseEDI('[QSORecords;1]\nABCDEF;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n');
+  assertEqual(badFmt.qsos.length, 0, 'non-numeric date → QSO skipped');
+  assertEqual(badFmt.warnings[0].type, 'date', 'non-numeric date → warning.type = "date"');
+
+  // Invalid mode — warn but keep QSO (SSB default)
+  const badMode = w.parseEDI('[QSORecords;1]\n210703;1000;DL1ABC;9;59;001;59;001;#;JO31NC;450\n');
+  assertEqual(badMode.qsos.length, 1, 'invalid mode (9) → QSO kept (SSB default)');
+  assertEqual(badMode.qsos[0].mode, 1, 'invalid mode → mode defaults to SSB (1)');
+  assertEqual(badMode.warnings.length, 1, 'invalid mode → 1 warning');
+  assertEqual(badMode.warnings[0].type, 'mode', 'invalid mode → warning.type = "mode"');
+
+  // Mixed: one valid, one bad date
+  const mixed = '[QSORecords;2]\n210703;0900;S59DGO;1;59;001;59;001;#;JN75FO;50\n991399;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n';
+  const mixedP = w.parseEDI(mixed);
+  assertEqual(mixedP.qsos.length, 1, 'mixed: valid QSO retained');
+  assertEqual(mixedP.warnings.length, 1, 'mixed: 1 warning for skipped QSO');
 
   // ════════════════════════════════════════════
   //  v1.3 — Light theme, filter, interactive export

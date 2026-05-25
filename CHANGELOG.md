@@ -5,6 +5,30 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.5.0] — 2026-05-25
+
+### Dodano
+- **Footer z licenco MIT** — stalna vrstica na dnu strani (`v1.5 · s56oa/EDIAnalitika · MIT License`); klik na "MIT License" odpre overlay z besedilom licence; zapiranje z `×`, klikom zunaj ali tipko `Escape`; skrito pri tisku
+- **Opozorila pri parsiranju EDI** — `#warnBox` (jantarni panel pod metrikami) prikazuje opozorila z vrstico in vzrokom po uspešnem nalaganju datoteke
+- **Podpora za 4-znakoven Maidenhead lokator** — `locToLatLon('JN75')` vrne center kvadranta (ekvivalent `JN75MM`); koristen za dnevnike, ki beležijo lokatorje brez podmreže
+
+### Popravljeno
+- **`locToLatLon()` — validacija lokatorja**: dodan regex `/^[A-R]{2}[0-9]{2}/` za preverjanje veljavnih znakov in `/^[A-R]{2}[0-9]{2}[A-X]{2}/` za subsquare; zavrača 5-znakoven (nestandarden) in 7+ znakoven (pokvarjen) lokator; sprejema 4-znakoven (center kvadranta)
+- **`parseEDI()` — validacija datuma**: polje `p[0]` (YYMMDD) preverjeno z regex in obsegi (mm 01–12, dd 01–31); QSO z neveljavnim datumom se preskoči in sproži opozorilo v `#warnBox`
+- **`parseEDI()` — validacija načina dela**: sprejema samo 1/2/3; neveljavna vrednost privzeto na SSB (1) in sproži opozorilo; QSO ni preskočen (način je popravljiv podatek)
+- **`filterQsoTable()` — debounce**: dodan 150 ms debounce pri tipkanju (`oninput` pošlje `debounced=true`); programatski klici iz `applyAllTable()` ostanejo takojšnji
+- **Memory leak: SVG event listenerji pan karte** — `mousedown`, `wheel`, `touchstart`, `touchmove`, `touchend` na `#mapSvg` in `#animMapSvg` so se kopičili ob vsakem `resetApp()+reload` ciklu; popravljeno: `initMapPan()` in `initAnimPan()` se izvedeta enkrat — `_mapPanInited`/`_amPanInited` se ne resetirata; `_panStart`/`_amPanStart` se počistita ob resetiranju
+- **`renderMapData()` — DOM batch**: vsi `appendChild` klici gredo v `DocumentFragment`; en sam `g.appendChild(frag)` zamenja individualne vstavljave
+
+### Testi
+- 149 testnih primerov v CLI (`run_tests.js`), ~134 v brskalniku (`tests.html`)
+- Dodane nove testne skupine: `parseEDI — validation & warnings` (datum, način dela, mešani scenariji), razširjeni `locToLatLon` testi (7-znakoven, 5-znakoven, 4-znakoven lokator)
+- Posodobljeni testi verzije na `'1.5'`
+
+[1.5.0]: https://github.com/s56oa/EDIAnalitika/compare/v1.4...v1.5
+
+---
+
 ## [1.4.0] — 2026-05-24
 
 ### Dodano

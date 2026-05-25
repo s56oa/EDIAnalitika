@@ -79,12 +79,21 @@ assertClose(jn75fo?.lon, 14.46, 0.1, 'JN75FO lon ≈ 14.5°E');
 const io91vl = locToLatLon('IO91VL');
 assert(io91vl !== null,          'IO91VL returns a result');
 assertClose(io91vl?.lat, 51.48, 0.1, 'IO91VL lat ≈ 51.5°N (London)');
-assertNull(locToLatLon('JN'),    'too-short locator → null');
+assertNull(locToLatLon('JN'),    'too-short locator (2 chars) → null');
 assertNull(locToLatLon(''),      'empty string → null');
-assertNull(locToLatLon('ZZZZZZ'),'NaN locator → null');
+assertNull(locToLatLon('ZZZZZZ'),'invalid chars (Z not in A-R) → null');
+assertNull(locToLatLon('JN75FY'),'invalid 6th char (Y not in A-X) → null');
+assertNull(locToLatLon('JN75S'), '5-char locator (non-standard length) → null');
+assertNull(locToLatLon('JN75FO!'), '7-char locator with trailing garbage → null');
+assertNull(locToLatLon('JN75FOXX'), '8-char locator → null');
 const lower = locToLatLon('jn75fo');
 assert(lower !== null,           'lowercase locator accepted');
 assertClose(lower?.lat, 45.60,  0.1, 'lowercase gives same lat as uppercase');
+const jn75mm = locToLatLon('JN75MM');
+const jn75_4 = locToLatLon('JN75');
+assert(jn75_4 !== null,          '4-char locator JN75 → not null (center of square)');
+assertClose(jn75_4?.lat, jn75mm?.lat, 0.001, '4-char JN75 lat = center of JN75MM');
+assertClose(jn75_4?.lon, jn75mm?.lon, 0.001, '4-char JN75 lon = center of JN75MM');
 
 // ════════════════════════════════════════════
 group('haversine');
@@ -190,10 +199,51 @@ assertEqual(parseEDI(crlf).qsos.length, 1, 'CRLF line endings handled');
 const noCount = '[REG1TEST;1]\nPCall=S56OA\n[QSORecords]\n210703;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n';
 assertEqual(parseEDI(noCount).qsos.length, 1, '[QSORecords] without count parsed correctly');
 
+group('parseEDI — validation & warnings');
+assert(Array.isArray(parsed.warnings), 'valid EDI → warnings is array');
+assertEqual(parsed.warnings.length, 0, 'valid EDI → 0 warnings');
+assertEqual(parseEDI('').warnings.length, 0, 'empty input → 0 warnings');
+
+// Invalid date — month out of range
+const badMonth = parseEDI('[QSORecords;1]\n211399;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n');
+assertEqual(badMonth.qsos.length, 0, 'invalid date (month 13) → QSO skipped');
+assertEqual(badMonth.warnings.length, 1, 'invalid date (month 13) → 1 warning');
+assertEqual(badMonth.warnings[0].type, 'date', 'invalid date → warning type = "date"');
+assertEqual(badMonth.warnings[0].raw, '211399', 'invalid date → warning carries raw value');
+
+// Invalid date — non-numeric
+const badDateFmt = parseEDI('[QSORecords;1]\nABCDEF;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n');
+assertEqual(badDateFmt.qsos.length, 0, 'non-numeric date → QSO skipped');
+assertEqual(badDateFmt.warnings[0].type, 'date', 'non-numeric date → warning type = "date"');
+
+// Invalid date — day out of range
+const badDay = parseEDI('[QSORecords;1]\n210732;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n');
+assertEqual(badDay.qsos.length, 0, 'invalid date (day 32) → QSO skipped');
+assertEqual(badDay.warnings[0].type, 'date', 'day 32 → warning type = "date"');
+
+// Invalid mode — warn but keep QSO (default SSB)
+const badMode = parseEDI('[QSORecords;1]\n210703;1000;DL1ABC;9;59;001;59;001;#;JO31NC;450\n');
+assertEqual(badMode.qsos.length, 1, 'invalid mode (9) → QSO kept with SSB default');
+assertEqual(badMode.qsos[0].mode, 1, 'invalid mode → mode defaults to SSB (1)');
+assertEqual(badMode.warnings.length, 1, 'invalid mode → 1 warning');
+assertEqual(badMode.warnings[0].type, 'mode', 'invalid mode → warning type = "mode"');
+assertEqual(badMode.warnings[0].raw, '9', 'invalid mode → warning carries raw value');
+
+// Mode 0 is also invalid
+const modeZero = parseEDI('[QSORecords;1]\n210703;1000;DL1ABC;0;59;001;59;001;#;JO31NC;450\n');
+assertEqual(modeZero.qsos[0].mode, 1, 'mode 0 → SSB default');
+assertEqual(modeZero.warnings[0].type, 'mode', 'mode 0 → warning type = "mode"');
+
+// Mixed: one valid, one bad date
+const mixed = '[QSORecords;2]\n210703;0900;S59DGO;1;59;001;59;001;#;JN75FO;50\n991399;1000;DL1ABC;1;59;001;59;001;#;JO31NC;450\n';
+const mixedP = parseEDI(mixed);
+assertEqual(mixedP.qsos.length, 1, 'mixed: valid QSO retained');
+assertEqual(mixedP.warnings.length, 1, 'mixed: 1 warning for skipped QSO');
+
 // ════════════════════════════════════════════
 group('APP_VERSION & mapThemeColors');
 const vMatch = src.match(/const APP_VERSION\s*=\s*'([^']+)'/);
-assertEqual(vMatch ? vMatch[1] : null, '1.4', 'APP_VERSION constant is "1.4"');
+assertEqual(vMatch ? vMatch[1] : null, '1.5', 'APP_VERSION constant is "1.5"');
 
 const mapThemeSrc = src.match(/function mapThemeColors\b[\s\S]*?\n\}/)[0];
 const {mapThemeColors: mtcDark}  = new Function(`let _theme='dark';\n${mapThemeSrc}\nreturn {mapThemeColors};`)();

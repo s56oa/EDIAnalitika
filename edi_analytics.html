@@ -189,8 +189,10 @@ tr:hover td { background: rgba(88,166,255,0.04); }
   border-radius:5px; padding:2px 8px; font-size:10px; cursor:pointer;
   transition:all 0.15s; display:flex; align-items:center; gap:4px; font-family:'DM Sans',sans-serif; }
 .export-btn:hover { border-color:var(--accent2); color:var(--accent2); }
-/* ── ERROR ───────────────────────────────── */
+/* ── ERROR / WARNING ─────────────────────── */
 .err-toast { background: rgba(255,123,114,0.15); border: 1px solid rgba(255,123,114,0.3); border-radius: 8px; padding: 0.75rem 1rem; color: var(--accent4); font-size: 0.85rem; max-width: 480px; }
+.warn-toast { background: rgba(210,153,34,0.12); border: 1px solid rgba(210,153,34,0.35); border-radius: 8px; padding: 0.75rem 1rem; color: var(--accent3); font-size: 0.85rem; margin-bottom: 0.5rem; }
+#warnBox { margin: 0.75rem 0 0; }
 
 /* ── MAP ─────────────────────────────────── */
 #locatorMap { width: 100%; border-radius: 6px; background: var(--map-bg); position: relative; user-select: none; overflow: hidden; }
@@ -254,13 +256,44 @@ tr:hover td { background: rgba(88,166,255,0.04); }
   #compassCanvas { max-width: 280px !important; max-height: 280px !important; }
   canvas { max-width: 100% !important; }
 }
+
+/* ── APP FOOTER ──────────────────────────── */
+#appFooter {
+  font-size: 11px; color: var(--muted); text-align: center;
+  padding: 1rem 0 1.5rem; margin-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+#appFooter a { color: var(--muted); text-decoration: none; }
+#appFooter a:hover { color: var(--accent); }
+
+/* ── LICENSE MODAL ───────────────────────── */
+#licenseModal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); z-index: 9999;
+  align-items: center; justify-content: center;
+}
+#licenseModal.open { display: flex; }
+#licenseBox {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.75rem 2rem; max-width: 620px; width: 92%;
+  max-height: 80vh; overflow-y: auto; position: relative;
+}
+#licenseBox h3 { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--accent); margin-bottom: 1rem; }
+#licenseBox pre { white-space: pre-wrap; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.65; }
+#licenseClose {
+  position: absolute; top: 0.75rem; right: 0.9rem;
+  background: none; border: none; color: var(--muted); font-size: 1.2rem;
+  cursor: pointer; line-height: 1; padding: 2px 6px;
+}
+#licenseClose:hover { color: var(--text); }
+@media print { #appFooter, #licenseModal { display: none !important; } }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">EDI<span>//</span>LOG</div>
-  <span class="version-badge">v1.4</span>
+  <span class="version-badge">v1.5</span>
   <div id="hdrMeta" style="font-size:0.85rem;color:var(--muted);"></div>
   <h1 id="hdrTagline">radioamaterska log analitika</h1>
   <div style="display:flex;gap:4px;margin-left:1rem;align-items:center">
@@ -304,6 +337,7 @@ tr:hover td { background: rgba(88,166,255,0.04); }
   </div>
 
   <div class="metrics" id="metrics"></div>
+  <div id="warnBox"></div>
 
   <div class="row1">
     <div class="card">
@@ -443,10 +477,44 @@ tr:hover td { background: rgba(88,166,255,0.04); }
         <div class="card-title" data-i18n="tableAll">Vse zveze</div>
         <input type="text" id="filterInput" placeholder="🔍 klicni znak, lokator, način..."
           style="padding:3px 8px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);min-width:180px"
-          oninput="filterQsoTable(this.value)">
+          oninput="filterQsoTable(this.value,true)">
       </div>
       <div class="qso-wrap"><table><thead id="allHead"></thead><tbody id="allBody"></tbody></table></div>
     </div>
+  </div>
+</div>
+
+<footer id="appFooter">
+  EDI Log Analitika v<span id="footerVersion"></span>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/s56oa/EDIAnalitika" target="_blank" rel="noopener">s56oa/EDIAnalitika</a>
+  &nbsp;&middot;&nbsp;
+  <a href="#" onclick="showLicense();return false;">MIT License</a>
+</footer>
+
+<div id="licenseModal" role="dialog" aria-modal="true" aria-label="MIT License">
+  <div id="licenseBox">
+    <button id="licenseClose" onclick="closeLicense()" title="Zapri">&times;</button>
+    <h3>MIT License</h3>
+    <pre>Copyright (c) 2026 Ognjen Antonič - S56OA
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre>
   </div>
 </div>
 
@@ -454,7 +522,7 @@ tr:hover td { background: rgba(88,166,255,0.04); }
 // ═══════════════════════════════════════
 //  I18N
 // ═══════════════════════════════════════
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 document.querySelector('.version-badge').textContent = 'v' + APP_VERSION;
 
 const STRINGS = {
@@ -479,6 +547,8 @@ sl:{
   modeLegendSuffix:'QSO', mapTooltipQso:'QSO', mapTooltipAvg:'ø', mapTooltipMax:'max',
   errRead:'Napaka pri branju', errNoQso:'Ni najdenih QSO zapisov.',
   errEdi:'Datoteka mora imeti končnico .edi (REG1TEST format)',
+  warnDate:'vrstica {line}: neveljaven datum "{raw}" (pričakovano LLMMDD)',
+  warnMode:'vrstica {line}: neznan način dela "{raw}" — privzeto SSB',
   azX:'azimut (°)', azY:'razdalja (km)',
   chartTimeline:'Timeline QSO: čas vs. razdalja',
   chartCumPts:'Kumulativne točke skozi čas',
@@ -509,6 +579,8 @@ en:{
   modeLegendSuffix:'QSOs', mapTooltipQso:'QSOs', mapTooltipAvg:'avg', mapTooltipMax:'max',
   errRead:'Read error', errNoQso:'No QSO records found.',
   errEdi:'File must have .edi extension (REG1TEST format)',
+  warnDate:'line {line}: invalid date "{raw}" (expected YYMMDD)',
+  warnMode:'line {line}: unknown mode "{raw}" — defaulted to SSB',
   azX:'azimuth (°)', azY:'distance (km)',
   chartTimeline:'QSO Timeline: time vs. distance',
   chartCumPts:'Cumulative points over time',
@@ -524,6 +596,7 @@ let _allBodyHtml = '';
 let _allQsos = [];
 let _sortCol = 'origIdx';
 let _sortDir = 'asc';
+let _filterTimer = null;
 
 // ── THEME ─────────────────────────────────────────────────────────
 let _theme = localStorage.getItem('ediTheme') || 'dark';
@@ -565,7 +638,8 @@ function mapThemeColors(){
     : {sea:'#c8dde8', land:'#d8e6cc', border:'#a8c090', grid:'#6a8a60'};
 }
 
-function filterQsoTable(q){
+function filterQsoTable(q, debounced){
+  if(debounced){ clearTimeout(_filterTimer); _filterTimer=setTimeout(()=>filterQsoTable(q,false),150); return; }
   if(!_allBodyHtml) return;
   if(!q.trim()){ document.getElementById('allBody').innerHTML = _allBodyHtml; return; }
   const s = q.toLowerCase();
@@ -748,7 +822,7 @@ function _dlPNG(canvas, fname){
 // ═══════════════════════════════════════
 //  HTML REPORT EXPORT
 // ═══════════════════════════════════════
-async function exportHTML() {
+function exportHTML() {
   const hdrCall = document.getElementById('hdrCall')?.textContent || 'LOG';
 
   // ── Helpers
@@ -761,30 +835,6 @@ async function exportHTML() {
     tc.fillStyle = _theme==='dark'?'#161b22':'#ffffff'; tc.fillRect(0,0,tmp.width,tmp.height);
     tc.drawImage(el,0,0);
     return tmp.toDataURL('image/png');
-  }
-
-  function svgToPngAsync(svgEl, w, h, bg) {
-    return new Promise(resolve => {
-      const clone = svgEl.cloneNode(true);
-      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-      clone.setAttribute('width',w); clone.setAttribute('height',h);
-      const st = document.createElementNS('http://www.w3.org/2000/svg','style');
-      st.textContent = 'text{font-family:monospace}';
-      clone.insertBefore(st, clone.firstChild);
-      const str = new XMLSerializer().serializeToString(clone);
-      const b64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(str)));
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = w*2; c.height = h*2;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = bg||(_theme==='dark'?'#161b22':'#ffffff'); ctx.fillRect(0,0,c.width,c.height);
-        ctx.drawImage(img,0,0,c.width,c.height);
-        resolve(c.toDataURL('image/png'));
-      };
-      img.onerror = () => resolve(null);
-      img.src = b64;
-    });
   }
 
   function countryBarsToPngData() {
@@ -833,7 +883,11 @@ async function exportHTML() {
   const heatmapPng  = canvasToPng('heatmapCanvas');
   const countryPng  = countryBarsToPngData();
   const mapSvgEl    = document.getElementById('mapSvg');
-  const mapPng      = await svgToPngAsync(mapSvgEl, mapSvgEl.clientWidth||900, 520, _theme==='dark'?'#0d1a2a':'#c8dde8');
+  const _mapClone   = mapSvgEl.cloneNode(true);
+  _mapClone.removeAttribute('id');
+  _mapClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  _mapClone.setAttribute('style', 'width:100%;height:auto;display:block;border-radius:6px;');
+  const mapInlineSvg = new XMLSerializer().serializeToString(_mapClone);
 
   // ── Capture existing rendered HTML
   const callSafe    = escapeHTML(hdrCall);
@@ -934,7 +988,7 @@ ${card(t('chartCountry'), ci(countryPng, t('chartCountry')))}
 
 ${card(t('chartAz'), ci(azPng, t('chartAz')))}
 
-${card(t('chartMap'), ci(mapPng, t('chartMap')))}
+${card(t('chartMap'), mapInlineSvg)}
 
 <div class="r2">
 ${card(t('chartTimeline'), ci(timelinePng, t('chartTimeline')))}
@@ -1053,6 +1107,7 @@ function exportHTMLInteractive() {
     </div>
   </div>
   <div class="metrics" id="metrics"></div>
+  <div id="warnBox"></div>
   <div class="row1"><div class="card">
     <div class="card-header"><div class="card-title" data-i18n="chartHour">Aktivnost po urah (UTC)</div>${expBtn('hourChart')}</div>
     <canvas id="hourChart" height="90"></canvas>
@@ -1152,7 +1207,7 @@ function exportHTMLInteractive() {
       <div class="card-title" data-i18n="tableAll">Vse zveze</div>
       <input type="text" id="filterInput" placeholder="🔍 klicni znak, lokator, način..."
         style="padding:3px 8px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);min-width:180px"
-        oninput="filterQsoTable(this.value)">
+        oninput="filterQsoTable(this.value,true)">
     </div>
     <div class="qso-wrap"><table><thead id="allHead"></thead><tbody id="allBody"></tbody></table></div>
   </div></div>
@@ -1179,6 +1234,7 @@ let _allBodyHtml = '';
 let _allQsos = [];
 let _sortCol = 'origIdx';
 let _sortDir = 'asc';
+let _filterTimer = null;
 let charts = {};
 let _vx=0,_vy=0,_vz=1,_panStart=null,_workedBounds=null,_mapPanInited=false,_mapBaseBuilt=false;
 let _mapQsosData=[],_mapHomeLocStr='JN75FO',_mapHomeCall='',_mapColorMode='dist';
@@ -1216,9 +1272,12 @@ function parseEDI(text) {
   const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
   const header = {};
   const qsos = [];
+  const warnings = [];
   let section = '';
+  let lineNum = 0;
 
   for (const raw of lines) {
+    lineNum++;
     const line = raw.trim();
     if (!line) continue;
     if (line.startsWith('[')) { section = line.toLowerCase(); continue; }
@@ -1230,15 +1289,34 @@ function parseEDI(text) {
       const dateStr = p[0]; // YYMMDD
       const timeStr = p[1]; // HHMM
       const call = p[2].trim();
-      const mode = parseInt(p[3]) || 1; // 1=SSB,2=CW,3=FM
       const txnr = p[5].trim();
       const rxnr = p[7].trim();
       const wwl  = p[9].trim();
       const dist = parseInt(p[10]) || 0;
 
-      const yy = parseInt(dateStr.substring(0,2));
+      // Validate date format and range
+      if (!/^\d{6}$/.test(dateStr)) {
+        warnings.push({line: lineNum, type: 'date', raw: dateStr});
+        continue;
+      }
       const mm = parseInt(dateStr.substring(2,4));
       const dd = parseInt(dateStr.substring(4,6));
+      if (mm < 1 || mm > 12 || dd < 1 || dd > 31) {
+        warnings.push({line: lineNum, type: 'date', raw: dateStr});
+        continue;
+      }
+
+      // Validate mode — warn and default to SSB if unknown
+      const modeRaw = parseInt(p[3]);
+      let mode;
+      if (modeRaw === 1 || modeRaw === 2 || modeRaw === 3) {
+        mode = modeRaw;
+      } else {
+        warnings.push({line: lineNum, type: 'mode', raw: p[3].trim()});
+        mode = 1;
+      }
+
+      const yy = parseInt(dateStr.substring(0,2));
       const hh = parseInt(timeStr.substring(0,2));
       const mi = parseInt(timeStr.substring(2,4));
 
@@ -1251,7 +1329,7 @@ function parseEDI(text) {
       if (eq > 0) header[line.substring(0,eq).toLowerCase()] = line.substring(eq+1).trim();
     }
   }
-  return { header, qsos };
+  return { header, qsos, warnings };
 }
 
 // ═══════════════════════════════════════
@@ -1259,9 +1337,11 @@ function parseEDI(text) {
 // ═══════════════════════════════════════
 function locToLatLon(loc) {
   const l = (loc+'').toUpperCase().trim();
-  if (l.length < 6) return null;
-  const lon = (l.charCodeAt(0)-65)*20 - 180 + parseInt(l[2])*2 + (l.charCodeAt(4)-65)*2/24 + 1/24;
-  const lat = (l.charCodeAt(1)-65)*10 - 90  + parseInt(l[3])*1 + (l.charCodeAt(5)-65)*1/24 + 0.5/24;
+  if (l.length < 4 || l.length === 5 || l.length > 6 || !/^[A-R]{2}[0-9]{2}/.test(l)) return null;
+  const s = l.length >= 6 ? l : l + 'MM'; // pad 4-char to center of square
+  if (!/^[A-R]{2}[0-9]{2}[A-X]{2}/.test(s)) return null;
+  const lon = (s.charCodeAt(0)-65)*20 - 180 + parseInt(s[2])*2 + (s.charCodeAt(4)-65)*2/24 + 1/24;
+  const lat = (s.charCodeAt(1)-65)*10 - 90  + parseInt(s[3])*1 + (s.charCodeAt(5)-65)*1/24 + 0.5/24;
   if (isNaN(lon)||isNaN(lat)) return null;
   return {lat, lon};
 }
@@ -1824,7 +1904,9 @@ function render(data) {
 function handleFile(file) {
   if (!file) return;
   const errBox = document.getElementById('errBox');
+  const warnBox = document.getElementById('warnBox');
   errBox.innerHTML = '';
+  if (warnBox) warnBox.innerHTML = '';
   if (!file.name.toLowerCase().endsWith('.edi')) {
     errBox.innerHTML = `<div class="err-toast">⚠️ ${t('errEdi')}</div>`;
     return;
@@ -1835,6 +1917,13 @@ function handleFile(file) {
       const data = parseEDI(e.target.result);
       if (!data.qsos.length) throw new Error(t('errNoQso'));
       render(data);
+      if (data.warnings.length && warnBox) {
+        warnBox.innerHTML = data.warnings.map(w => {
+          const msg = t(w.type === 'date' ? 'warnDate' : 'warnMode')
+            .replace('{line}', w.line).replace('{raw}', escapeHTML(w.raw));
+          return `<div class="warn-toast">⚠️ ${msg}</div>`;
+        }).join('');
+      }
     } catch(err) {
       errBox.innerHTML = `<div class="err-toast">⚠️ ${t('errRead')}: ${err.message}</div>`;
     }
@@ -1844,12 +1933,16 @@ function handleFile(file) {
 
 function resetApp() {
   _lastRenderData = null; _allBodyHtml = '';
+  clearTimeout(_filterTimer); _filterTimer = null;
+  const wb = document.getElementById('warnBox'); if (wb) wb.innerHTML = '';
   destroyCharts();
   _mapQsosData = []; _mapHomeCall = ''; _workedBounds = null; _mapBaseBuilt = false;
+  _panStart = null; // clear any in-progress drag
   const zg = document.getElementById('mapZoomGroup');
   if(zg) while(zg.firstChild) zg.removeChild(zg.firstChild);
   // Stop and clear animated map
   if(_amInterval){ clearInterval(_amInterval); _amInterval=null; }
+  _amPanStart = null;
   _amQsos=[]; _amBaseBuilt=false;
   const azg=document.getElementById('animZoomGroup');
   if(azg) while(azg.firstChild) azg.removeChild(azg.firstChild);
@@ -1888,6 +1981,7 @@ let _vx=0,_vy=0,_vz=1;
 let _panStart=null;
 let _workedBounds=null;
 let _mapPanInited=false;
+let _mapMoveHandler=null, _mapUpHandler=null;
 let _mapBaseBuilt=false;
 
 function applyTransform(){
@@ -1950,14 +2044,10 @@ function initMapPan(){
     _panStart={x:e.clientX-_vx,y:e.clientY-_vy};
     svg.classList.add('panning'); e.preventDefault();
   });
-  window.addEventListener('mousemove',e=>{
-    if(!_panStart) return;
-    _vx=e.clientX-_panStart.x; _vy=e.clientY-_panStart.y;
-    applyTransform();
-  });
-  window.addEventListener('mouseup',()=>{
-    _panStart=null; document.getElementById('mapSvg')?.classList.remove('panning');
-  });
+  _mapMoveHandler=e=>{ if(!_panStart) return; _vx=e.clientX-_panStart.x; _vy=e.clientY-_panStart.y; applyTransform(); };
+  _mapUpHandler=()=>{ _panStart=null; document.getElementById('mapSvg')?.classList.remove('panning'); };
+  window.addEventListener('mousemove',_mapMoveHandler);
+  window.addEventListener('mouseup',_mapUpHandler);
 
   // Touch pan
   let _t0=null;
@@ -2064,6 +2154,7 @@ function renderMapData(){
   const zg=document.getElementById('mapZoomGroup');
   const old=zg.querySelector('#dataLayer'); if(old) zg.removeChild(old);
   const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.id='dataLayer';
+  const frag=document.createDocumentFragment();
 
   const fields={};
   _mapQsosData.forEach(q=>{
@@ -2104,7 +2195,7 @@ function renderMapData(){
       line.setAttribute('x1',hx);line.setAttribute('y1',hy);
       line.setAttribute('x2',r.cx);line.setAttribute('y2',r.cy);
       line.setAttribute('stroke',fc);line.setAttribute('stroke-width','0.7');
-      line.setAttribute('opacity','0.25'); g.appendChild(line);
+      line.setAttribute('opacity','0.25'); frag.appendChild(line);
     });
   }
 
@@ -2140,7 +2231,7 @@ function renderMapData(){
       rect.setAttribute('stroke-opacity','0.35'); rect.setAttribute('fill-opacity','0.72');
       document.getElementById('mapTooltip').style.display='none';
     });
-    g.appendChild(rect);
+    frag.appendChild(rect);
 
     // Labels (font-size in SVG user units — scale naturally with zoom)
     const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -2150,14 +2241,14 @@ function renderMapData(){
     t1.setAttribute('font-family','Space Mono,monospace');
     t1.setAttribute('fill','#fff'); t1.setAttribute('opacity','0.92');
     t1.setAttribute('pointer-events','none'); t1.textContent=f4;
-    g.appendChild(t1);
+    frag.appendChild(t1);
     const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
     t2.setAttribute('x',r.cx); t2.setAttribute('y',r.cy+6.5);
     t2.setAttribute('text-anchor','middle');
     t2.setAttribute('font-size','5.5'); t2.setAttribute('font-family','DM Sans,sans-serif');
     t2.setAttribute('fill','#fff'); t2.setAttribute('opacity','0.65');
     t2.setAttribute('pointer-events','none'); t2.textContent=data.qsos.length+'×';
-    g.appendChild(t2);
+    frag.appendChild(t2);
   });
 
   if(bx0<Infinity) _workedBounds={x0:bx0,y0:by0,x1:bx1,y1:by1};
@@ -2169,16 +2260,17 @@ function renderMapData(){
       ci.setAttribute('cx',hx); ci.setAttribute('cy',hy); ci.setAttribute('r',r);
       ci.setAttribute('fill',c); ci.setAttribute('fill-opacity',fo);
       if(+sw>0){ci.setAttribute('stroke',c); ci.setAttribute('stroke-width',sw);}
-      g.appendChild(ci);
+      frag.appendChild(ci);
     });
     const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
     lbl.setAttribute('x',hx+7); lbl.setAttribute('y',hy-4);
     lbl.setAttribute('font-size','7'); lbl.setAttribute('font-family','Space Mono,monospace');
     lbl.setAttribute('fill','#ff7b72'); lbl.setAttribute('font-weight','bold');
     lbl.setAttribute('pointer-events','none');
-    lbl.textContent=_mapHomeCall||_mapHomeLocStr; g.appendChild(lbl);
+    lbl.textContent=_mapHomeCall||_mapHomeLocStr; frag.appendChild(lbl);
   }
 
+  g.appendChild(frag);
   zg.appendChild(g);
 }
 
@@ -2208,6 +2300,7 @@ let _amQsos=[], _amStartAbs=0, _amEndAbs=0, _amCurrentOff=0;
 let _amInterval=null, _amSpeed=6;
 let _amVx=0, _amVy=0, _amVz=1;
 let _amPanStart=null, _amPanInited=false, _amBaseBuilt=false;
+let _amMoveHandler=null, _amUpHandler=null;
 let _amHomeLocStr='JN75FO', _amHomeCall='';
 
 function applyAnimTransform(){
@@ -2366,13 +2459,10 @@ function initAnimPan(){
     _amPanStart={x:e.clientX-_amVx,y:e.clientY-_amVy};
     svg.classList.add('panning'); e.preventDefault();
   });
-  window.addEventListener('mousemove',e=>{
-    if(!_amPanStart) return;
-    _amVx=e.clientX-_amPanStart.x; _amVy=e.clientY-_amPanStart.y; applyAnimTransform();
-  });
-  window.addEventListener('mouseup',()=>{
-    _amPanStart=null; document.getElementById('animMapSvg')?.classList.remove('panning');
-  });
+  _amMoveHandler=e=>{ if(!_amPanStart) return; _amVx=e.clientX-_amPanStart.x; _amVy=e.clientY-_amPanStart.y; applyAnimTransform(); };
+  _amUpHandler=()=>{ _amPanStart=null; document.getElementById('animMapSvg')?.classList.remove('panning'); };
+  window.addEventListener('mousemove',_amMoveHandler);
+  window.addEventListener('mouseup',_amUpHandler);
   svg.addEventListener('wheel',e=>{
     e.preventDefault();
     const rect=svg.getBoundingClientRect();
@@ -2400,6 +2490,13 @@ box.addEventListener('dragover', e=>{ e.preventDefault(); box.classList.add('dra
 box.addEventListener('dragleave', ()=>box.classList.remove('drag'));
 box.addEventListener('drop', e=>{ e.preventDefault(); box.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); });
 document.getElementById('fileInput').addEventListener('change', e=>handleFile(e.target.files[0]));
+
+function showLicense(){ document.getElementById('licenseModal').classList.add('open'); }
+function closeLicense(){ document.getElementById('licenseModal').classList.remove('open'); }
+document.getElementById('licenseModal').addEventListener('click', function(e){ if(e.target===this) closeLicense(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLicense(); });
+
+document.getElementById('footerVersion').textContent = APP_VERSION;
 </script>
 </body>
 </html>

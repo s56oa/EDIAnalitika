@@ -34,9 +34,11 @@ Namenjena je radioamaterjem, ki tekmujejo v VHF (in UHF) tekmovanjih, kjer se za
 - **Izvoz interaktivnega HTML** — gumb "Izvozi interaktivni HTML" ustvari polno interaktivno `.html` datoteko z vgrajenimi QSO podatki (JSON); vsi grafikoni, karta, animacija in filter so funkcionalni; primerno za gostovanje na statičnih straneh
 - **Filter tabele QSO** — iskalno polje za takojšnje filtriranje tabele vseh zvez po klicnem znaku, lokatorju ali načinu dela
 - **Razvrščanje stolpcev tabele** — klik na glavo stolpca tabele "Vse zveze" razvrsti naraščajoče ali padajoče (▲/▼); razvrščanje se ohrani ob hkratnem filtriranju; stolpec `#` prikazuje izvirni kronološki vrstni red
+- **Validacija EDI datoteke** — `parseEDI()` preverja format in obseg datuma (YYMMDD) ter veljavnost načina dela (1/2/3); neveljavni QSO se preskoči ali popravi; opozorila z vrstico in vzrokom se prikažejo v oranžnem panelu pod metrikami
 - **Svetla / temna tema** — gumb ☀️/🌙 v glavi preklopi temo; izbira se ohrani v `localStorage`
 - **Tisk / PDF** — gumb za tiskanje oziroma shranjevanje v PDF neposredno iz brskalnika
 - **Dvojezičnost** — SL / EN preklapljanje brez ponovnega nalaganja datoteke
+- **Footer z licenco MIT** — klik na "MIT License" v nogi strani odpre overlay z besedilom licence
 
 ### Uporaba
 
@@ -70,7 +72,7 @@ Tipične vrednosti iz glave, ki jih aplikacija prebere:
 
 ### Testiranje
 
-Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, razvrščanje QSO tabele — skupaj 119 testnih primerov v brskalniku, 122 v CLI.
+Testi pokrivajo vse čiste funkcije logike (brez DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, razvrščanje QSO tabele — skupaj ~134 testnih primerov v brskalniku, 149 v CLI.
 
 **V brskalniku** (`tests.html`) — zahteva lokalni strežnik zaradi same-origin politike iframma:
 ```bash
@@ -120,9 +122,11 @@ It is aimed at amateur radio operators who participate in VHF (and UHF) contests
 - **Interactive HTML export** — "Export interactive HTML" button generates a fully interactive `.html` file with QSO data embedded as JSON; all charts, map, animated replay, and QSO filter work without a file reader; suitable for static hosting
 - **QSO table filter** — instant search box above the full QSO table; filters by callsign, locator, or mode
 - **Table column sorting** — click any column header in the "All QSOs" table to sort ascending or descending (▲/▼); sort order is preserved when filtering; the `#` column shows the original chronological index
+- **EDI validation** — `parseEDI()` checks date format and range (YYMMDD) and operating mode (1/2/3); invalid QSOs are skipped or corrected; warnings with line number and reason are shown in an amber panel below the metrics
 - **Light / dark theme** — ☀️/🌙 toggle in the header switches themes; preference is saved in `localStorage`
 - **Print / PDF** — one-click print or browser Save-as-PDF for a complete statistics report
 - **Bilingual UI** — SL / EN switching without re-loading the file
+- **MIT License footer** — clicking "MIT License" in the page footer opens an overlay with the full license text
 
 ### Usage
 
@@ -162,7 +166,7 @@ The application includes a built-in prefix table covering all European DXCC enti
 
 ### Testing
 
-Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, QSO table sorting — 119 test cases in the browser, 122 via CLI.
+Tests cover all pure logic functions (no DOM): `parseEDI`, `locToLatLon`, `haversine`, `bearing`, `getCountry`, `escapeHTML`, `modeName`, `mapThemeColors`, QSO table sorting — ~134 test cases in the browser, 149 via CLI.
 
 **In the browser** (`tests.html`) — requires a local server due to iframe same-origin policy:
 ```bash
