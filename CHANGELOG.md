@@ -5,6 +5,30 @@ Format sledi [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), verzionir
 
 ---
 
+## [1.7.0] — 2026-06-10
+
+### Dodano
+- **Detekcija duplikatov** — `markDupes(qsos, mode)` zazna dvojne zveze; privzeti način `po znaku` (samo klicni znak); opcija `po znaku + načinu`; gumba v glavi tabele "Vse zveze" preklopita med načinoma; duplikati so označeni z značko **DUPE** in izbledelimi vrsticami; detekcija temelji na kronološkem vrstnem redu (prva zveza je veljavna, vse nadaljnje so duplikati); vsi grafikoni in metrike temeljijo le na veljavnih zvezah (brez duplikatov in brez dist=0)
+- **Stolpec `Duplicate` v CSV izvozu** — `YES` za duplikate, prazno za veljavne zveze; vse zveze so vključene v izvoz
+- **Cache-busting za brskalnik** — `?v=1.7` v preusmeritvi `index.html` in `no-cache` meta oznake preprečujejo nalaganje zastarelih verzij iz brskalnikovega predpomnilnika
+
+### Popravljeno
+- **Formula razdalje po IARU Region 1** — zamenjano `Math.round(km)` z `Math.floor(km) + 1`; usklajeno z uradnimi pravili VHF tekmovanj v Evropi; primer: JN75FO→JN86AO = 166 km (prej: 165 km)
+- **Metrike vedno izračunane iz lastnih podatkov** — točke (CQSOP), WWL multiplikatorji in DXCC count se vedno izračunajo iz veljavnih QSO; vrednosti iz EDI glave (`CQSOp`, `CWWLs`, `CDXCs`) se ignorirajo
+- **Štetje neveljavnih in podvojenih QSO** — QSO z `isDupe=true && dist===0` se je štel hkrati v oba števca; popravljeno z `!q.isDupe` pogojem v filtru `invalid`
+- **Filter tabele ob prisotnosti značke DUPE** — iskanje po "d" je ujelo vse duplikate, ker je `textContent` vključeval besedilo značke; popravljeno z `data-search` atributom na `<tr>`, ki vsebuje samo `call+wwl+mode+time+date`
+- **Stanje gumbov duplakat-modo v izvoženem HTML** — v izvozenem interaktivnem HTML je gumb vedno prikazoval "po znaku" kot aktiven ne glede na nastavljeno vrednost; popravljeno z dinamičnim `${_dupeMode==='call'?'active':''}` v predlogi
+
+### Testi
+- 201 testnih primerov v CLI (`run_tests.js`) — prej 178
+- Dodane testne skupine: `markDupes — default mode` (3), `markDupes — call+mode` (4), `markDupes — edge cases` (4), `markDupes — chronological order prerequisite` (3), `invalid count excludes dupes` (2)
+- Posodobljeni haversine testi: preverjanje float rezultata, IARU formula (JN75FO→JN86AO=166 km)
+- Posodobljeni testi verzije na `'1.7'`
+
+[1.7.0]: https://github.com/s56oa/EDIAnalitika/compare/v1.6...v1.7
+
+---
+
 ## [1.6.0] — 2026-05-25
 
 ### Dodano

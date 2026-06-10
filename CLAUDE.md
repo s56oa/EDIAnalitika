@@ -35,13 +35,15 @@ LocalStorage → loadStoredLog(i) → parseEDI() → render()
 
 1. **`parseEDI(text)`** — splits on `[QSORecords` section; each semicolon-delimited line becomes a `qso` object `{call, mode, wwl, dist, hh, mi, dd, mm, yy, ...}`. Header key=value pairs go into `header{}`. Mode integers: 1=SSB, 2=CW, 3=FM.
 
-2. **`render(data)`** — called with `{header, qsos}`. Enriches QSOs with azimuth/distance from home locator (`header['pwwlo']`), then builds all visualisations. Stores the last data in `_lastRenderData` so language switching can re-render without re-parsing.
+2. **`render(data)`** — called with `{header, qsos}`. Enriches QSOs with azimuth/distance from home locator (`header['pwwlo']`), sorts chronologically, calls `markDupes(qsos, _dupeMode)`, then builds all visualisations. Stores the last data in `_lastRenderData` so language switching can re-render without re-parsing. `valid = qsos.filter(q => q.dist > 0 && !q.isDupe)` — the base for all metrics and charts.
 
-3. **Locator math** — `locToLatLon(loc)` converts 6-char Maidenhead locator to lat/lon. `bearing()` and `haversine()` compute azimuth and great-circle distance.
+3. **`markDupes(qsos, mode)`** — marks duplicate QSOs in chronological order. `mode='call'` (default): key is callsign only; `mode='call+mode'`: key is `call\x00mode`. Sets `q.isDupe = true` on all but the first occurrence. Must be called after chronological sort.
+
+4. **Locator math** — `locToLatLon(loc)` converts 6-char Maidenhead locator to lat/lon. `bearing()` and `haversine()` compute azimuth and great-circle distance. `haversine()` returns a raw float (no rounding); distance applied in `render()` as `Math.floor(rawDist) + 1` (IARU Region 1 formula).
 
 4. **Country prefix table** — `PFX` array of `[RegExp, 'XX (COUNTRY)']` pairs, order-sensitive (more specific prefixes first, e.g. `HB0` before `HB`). `getCountry(call)` strips portable suffix before matching.
 
-5. **Charts** — Chart.js instances stored in `charts{}` object, destroyed on reload via `destroyCharts()`. Custom canvas compass (`compassCanvas`) drawn with raw 2D API.
+5. **Charts** — Chart.js instances stored in `charts{}` object, destroyed on reload via `destroyCharts()`. Custom canvas compass (`compassCanvas`) drawn with raw 2D API. All charts use `valid` QSOs only.
 
 6. **SVG map** — Mercator projection covering lon -12..42, lat 34..72. Country outlines baked in as `EU_SVG_PATHS` array (Natural Earth data). Zoom/pan state in `_vx, _vy, _vz`. Data layer (`#dataLayer`) rebuilt on color-mode change; base layer (`#baseLayer`) built once. Three coloring modes: distance, QSO count, SSB/CW mode.
 
@@ -61,6 +63,7 @@ LocalStorage → loadStoredLog(i) → parseEDI() → render()
 | `_mapQsosData`, `_mapHomeLocStr`, `_mapColorMode` | Map render state |
 | `_vx, _vy, _vz` | SVG map pan/zoom |
 | `_workedBounds` | Bounding box of worked locators for auto-fit |
+| `_dupeMode` | Duplicate detection mode: `'call'` (default) or `'call+mode'` |
 | `_allQsos`, `_sortCol`, `_sortDir`, `_allBodyHtml` | All-QSOs table sort/filter state (`var`, not `let`, so accessible via `window` in tests) |
 
 ### LocalStorage persistence (v1.6)
@@ -70,7 +73,7 @@ Key `ediLogHistory` holds a JSON array of up to `MAX_LOGS=5` entries `{text, nam
 ## EDI format notes
 
 REG1TEST EDI v1 fields used:
-- Header: `PCal` (callsign), `TName` (contest name), `PBand` (band), `PWWLo` (own locator), `PSect` (section), `MOpe1` (operators), `CQSOp` (declared points), `CWWLs` (locator multipliers), `CDXCs` (DXCC count), `SPOWe` (TX power), `SAnte` (antenna), `TDate`
+- Header: `PCal` (callsign), `TName` (contest name), `PBand` (band), `PWWLo` (own locator), `PSect` (section), `MOpe1` (operators), `CQSOp` (declared points — read but not used; app always computes from valid QSOs), `CWWLs` (locator multipliers — read but not used; app always computes from valid QSOs), `CDXCs` (DXCC count — read but not used; app always computes from valid QSOs), `SPOWe` (TX power), `SAnte` (antenna), `TDate`
 - QSO record columns (0-based): `[0]`date YYMMDD, `[1]`time HHMM, `[2]`callsign, `[3]`mode, `[5]`sent serial, `[7]`received serial, `[9]`worked WWL, `[10]`distance km
 
 ## Style conventions

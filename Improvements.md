@@ -3,7 +3,7 @@
 Vse ideje za prihodnje verzije aplikacije EDI Log Analitika.  
 Status: `[ ]` = ni implementirano, `[x]` = implementirano, `[~]` = delno implementirano
 
-Zadnja analiza: v1.6 (2026-05-25)
+Zadnja analiza: v1.7 (2026-06-10)
 
 ---
 
@@ -16,6 +16,8 @@ Pomanjkljivosti, ki vplivajo na pravilnost rezultatov ali povzročijo tihe napak
 - [x] **Validacija datuma v `parseEDI()`** — polje `p[0]` (YYMMDD) preverjeno z regex in obsegi (mm 01–12, dd 01–31); QSO z neveljavnim datumom se preskoči; opozorilo se prikaže v UI. *(v1.5)*
 
 - [x] **Validacija načina dela v `parseEDI()`** — sprejema samo 1/2/3; neveljavna vrednost privzeto na SSB (1) in sproži opozorilo. QSO ni preskočen (način je popravljiv podatek). *(v1.5)*
+
+- [x] **Formula razdalje IARU Region 1** — `Math.floor(km) + 1`; aplikacija vedno izračuna razdaljo sama (ignorirano polje `[10]` iz EDI); usklajeno z uradnimi pravili VHF tekmovanj. *(v1.7)*
 
 - [ ] **Validacija razdalje** — odločeno: brez validacije vrednosti; razdalja prihaja iz logging programa in ji zaupamo. QSO z dist=0 že filtrirani v obstoječi `valid` logiki.
 
@@ -42,6 +44,8 @@ Težave, ki postanejo opazne pri večjih dnevnikih (500+ QSO) ali daljši seji.
 ## Prioriteta 3 — Uporabnost (UX)
 
 - [x] **Filtriranje QSO tabele** — iskalno polje nad tabelo za filtriranje po klicnem znaku, lokatorju ali načinu dela. *(v1.3)*
+
+- [x] **Detekcija duplikatov** — `markDupes(qsos, mode)` zazna dvojne zveze; privzeti način `po znaku`; opcija `po znaku + načinu`; gumba v glavi tabele "Vse zveze" preklopita med načinoma; duplikati so označeni z značko DUPE; vsi grafikoni in metrike temeljijo le na veljavnih zvezah. *(v1.7)*
 
 - [x] **Razvrščanje stolpcev tabel** — klik na glavo stolpca razvrsti tabelo naraščajoče/padajoče; razvrščanje se ohrani ob filtriranju; `#` stolpec prikazuje izvirni kronološki indeks. *(v1.4)*
 
@@ -86,7 +90,7 @@ Težave, ki postanejo opazne pri večjih dnevnikih (500+ QSO) ali daljši seji.
 
 ## Prioriteta 5 — Izvozi
 
-- [x] **CSV izvoz** — gumb "Izvozi CSV" prenese celotno QSO tabelo kot `.csv` z UTF-8 BOM; semicolon-ločena; stolpci: `#`, `Date`, `Time (UTC)`, `Callsign`, `Mode`, `Locator`, `Distance (km)`, `Azimuth (°)`; azimut izračunan iz domačega lokatorja. *(v1.6)*
+- [x] **CSV izvoz** — gumb "Izvozi CSV" prenese celotno QSO tabelo kot `.csv` z UTF-8 BOM; semicolon-ločena; stolpci: `#`, `Date`, `Time (UTC)`, `Callsign`, `Mode`, `Locator`, `Distance (km)`, `Azimuth (°)`, `Duplicate`; azimut izračunan iz domačega lokatorja; vse zveze vključene. *(v1.6, Duplicate stolpec v1.7)*
 
 - [ ] **Izvoz karte kot SVG** — poleg PNG omogoči izvoz lokatorske karte v vektorskem SVG formatu.
 
@@ -156,11 +160,11 @@ Arhitekturne pomanjkljivosti brez takojšnjega vidnega učinka, ki otežujejo vz
 
 ## Unit testi — stanje
 
-- [x] **Browser testi** (`tests.html`): iframe-based vizualni prikaz, ~159 testnih primerov. *(v1.0)*
-- [x] **Node.js CLI runner** (`run_tests.js`): 178 testnih primerov, brez strežnika ali zunanjih odvisnosti. *(v1.0)*
+- [x] **Browser testi** (`tests.html`): iframe-based vizualni prikaz. *(v1.0)*
+- [x] **Node.js CLI runner** (`run_tests.js`): 201 testnih primerov, brez strežnika ali zunanjih odvisnosti. *(v1.0)*
 
 ### Pokrite funkcije
-`escapeHTML`, `modeName`, `modeClass`, `locToLatLon` (6-znakoven, 4-znakoven, 5-znakoven, 7+-znakoven, neveljavni znaki), `haversine`, `bearing`, `getCountry` (36 evropskih entitet + portable pripone), `parseEDI` (header, QSO zapisi, validacija datuma, validacija načina dela, opozorila), `mapThemeColors`, `APP_VERSION`, razvrščanje QSO tabele (`origIdx`, dist, call, mode, time + tiebreaker, toggle logika), `exportCSV` (null guard za lokator, azimut), `formatLogTime` (mejne vrednosti), `getLogHistory` / `setLogHistory` / `cleanOldLogs` / `saveLogToStorage` / `clearStoredLog` (LocalStorage persistence, Array.isArray guard, deduplikacija, 30-dnevni cutoff).
+`escapeHTML`, `modeName`, `modeClass`, `locToLatLon` (6-znakoven, 4-znakoven, 5-znakoven, 7+-znakoven, neveljavni znaki), `haversine` (raw float, IARU formula), `bearing`, `getCountry` (36 evropskih entitet + portable pripone), `parseEDI` (header, QSO zapisi, validacija datuma, validacija načina dela, opozorila), `markDupes` (privzeti način, call+mode, robni primeri, kronološki red), `mapThemeColors`, `APP_VERSION`, razvrščanje QSO tabele (`origIdx`, dist, call, mode, time + tiebreaker, toggle logika), `exportCSV` (null guard za lokator, azimut), `formatLogTime` (mejne vrednosti), `getLogHistory` / `setLogHistory` / `cleanOldLogs` / `saveLogToStorage` / `clearStoredLog` (LocalStorage persistence, Array.isArray guard, deduplikacija, 30-dnevni cutoff).
 
 ### Nepokrite funkcije (priložnosti)
 - `render()` — kompleksna DOM funkcija; zahteva browser okolje
